@@ -63,18 +63,17 @@ if "current_user" not in st.session_state:
 # URL ROUTING
 # =========================================================
 
-def get_current_page():
+def get_page_from_url():
 
     page = st.query_params.get("page", "home")
 
     if page not in VALID_PAGES:
         page = "home"
-        st.query_params["page"] = "home"
 
     return page
 
 
-current_page = get_current_page()
+current_page = get_page_from_url()
 
 
 def go_to(page):
@@ -82,12 +81,7 @@ def go_to(page):
     if page not in VALID_PAGES:
         page = "home"
 
-    current_url_page = st.query_params.get("page", "home")
-
-    if current_url_page != page:
-        st.query_params["page"] = page
-
-    st.rerun()
+    st.query_params["page"] = page
 
 
 def select_team(team):
@@ -97,19 +91,7 @@ def select_team(team):
 
 
 # =========================================================
-# HTML HELPER
-# =========================================================
-
-def render_html(content):
-
-    st.markdown(
-        content,
-        unsafe_allow_html=True
-    )
-
-
-# =========================================================
-# AUTH HELPERS
+# COMPANY EMAIL VALIDATION
 # =========================================================
 
 def is_valid_company_email(email):
@@ -118,6 +100,10 @@ def is_valid_company_email(email):
 
     return re.fullmatch(pattern, email) is not None
 
+
+# =========================================================
+# AUTH FUNCTIONS
+# =========================================================
 
 def register_user(email, password):
 
@@ -133,10 +119,6 @@ def register_user(email, password):
         if response.user is not None:
 
             st.session_state.current_user = email
-
-            st.success(
-                "Registration successful! Please log in."
-            )
 
             go_to("login")
 
@@ -295,7 +277,7 @@ modules = [
 # CUSTOM CSS
 # =========================================================
 
-render_html(
+st.html(
     """
     <style>
 
@@ -310,9 +292,7 @@ render_html(
         color: #182230;
     }
 
-    #MainMenu,
-    footer,
-    header {
+    #MainMenu, footer, header {
         visibility: hidden;
     }
 
@@ -321,10 +301,6 @@ render_html(
         padding-top: 1.2rem;
         padding-bottom: 3rem;
     }
-
-    /* =====================================================
-       TOP BAR
-       ===================================================== */
 
     .topbar {
         display: flex;
@@ -366,18 +342,8 @@ render_html(
         padding: 9px 14px;
     }
 
-    /* =====================================================
-       HERO
-       ===================================================== */
-
     .hero {
-        background: linear-gradient(
-            120deg,
-            #102338 0%,
-            #173a50 65%,
-            #245a59 100%
-        );
-
+        background: linear-gradient(120deg, #102338 0%, #173a50 65%, #245a59 100%);
         border-radius: 22px;
         padding: 58px 54px;
         color: white;
@@ -395,10 +361,8 @@ render_html(
         border-radius: 50%;
         right: -70px;
         top: -90px;
-
-        box-shadow:
-            0 0 0 35px rgba(255,255,255,0.025),
-            0 0 0 75px rgba(255,255,255,0.02);
+        box-shadow: 0 0 0 35px rgba(255,255,255,0.025),
+                    0 0 0 75px rgba(255,255,255,0.02);
     }
 
     .hero-small {
@@ -443,10 +407,6 @@ render_html(
         margin-bottom: 8px;
     }
 
-    /* =====================================================
-       SECTIONS
-       ===================================================== */
-
     .section-kicker {
         color: #6a9e36;
         font-size: 11px;
@@ -476,10 +436,6 @@ render_html(
         margin-bottom: 18px;
     }
 
-    /* =====================================================
-       INFO CARDS
-       ===================================================== */
-
     .info-card {
         background: #ffffff;
         border: 1px solid #e7ebf0;
@@ -508,10 +464,6 @@ render_html(
         line-height: 1.75;
     }
 
-    /* =====================================================
-       CLIENT CARDS
-       ===================================================== */
-
     .client-card {
         background: #ffffff;
         border: 1px solid #e7ebf0;
@@ -536,10 +488,6 @@ render_html(
         line-height: 1.6;
     }
 
-    /* =====================================================
-       OBJECTIVES
-       ===================================================== */
-
     .objective-card {
         background: #ffffff;
         border-left: 4px solid #85bc4b;
@@ -561,10 +509,6 @@ render_html(
         font-size: 12px;
         line-height: 1.7;
     }
-
-    /* =====================================================
-       STAGES
-       ===================================================== */
 
     .stage-card {
         background: #ffffff;
@@ -596,10 +540,6 @@ render_html(
         line-height: 1.7;
     }
 
-    /* =====================================================
-       VISION
-       ===================================================== */
-
     .vision-panel {
         background: #142c40;
         color: #ffffff;
@@ -622,10 +562,6 @@ render_html(
         font-size: 14px;
         line-height: 1.8;
     }
-
-    /* =====================================================
-       TEAM CARDS
-       ===================================================== */
 
     .team-card {
         background: #ffffff;
@@ -663,10 +599,6 @@ render_html(
         min-height: 40px;
     }
 
-    /* =====================================================
-       CTA
-       ===================================================== */
-
     .cta-panel {
         background: #eaf3e2;
         border: 1px solid #d9e9cb;
@@ -690,10 +622,6 @@ render_html(
         margin-bottom: 10px;
     }
 
-    /* =====================================================
-       PAGE HEADINGS
-       ===================================================== */
-
     .page-heading {
         color: #1b3043;
         font-size: 30px;
@@ -707,10 +635,6 @@ render_html(
         line-height: 1.7;
         margin-bottom: 22px;
     }
-
-    /* =====================================================
-       DASHBOARD
-       ===================================================== */
 
     .dashboard-card {
         background: #ffffff;
@@ -733,10 +657,6 @@ render_html(
         line-height: 1.7;
     }
 
-    /* =====================================================
-       FOOTER
-       ===================================================== */
-
     .footer {
         border-top: 1px solid #e2e8ee;
         margin-top: 40px;
@@ -745,10 +665,6 @@ render_html(
         font-size: 11px;
         text-align: center;
     }
-
-    /* =====================================================
-       STREAMLIT BUTTONS
-       ===================================================== */
 
     div.stButton > button {
         border-radius: 10px;
@@ -777,10 +693,6 @@ render_html(
         border-color: #689f34;
         color: #ffffff;
     }
-
-    /* =====================================================
-       RESPONSIVE
-       ===================================================== */
 
     @media (max-width: 800px) {
 
@@ -816,7 +728,7 @@ render_html(
 # TOP NAVIGATION
 # =========================================================
 
-render_html(
+st.html(
     """
     <div class="topbar">
 
@@ -885,9 +797,8 @@ with nav3:
             go_to("login")
 
 
-st.markdown(
-    "<div style='height:8px'></div>",
-    unsafe_allow_html=True
+st.html(
+    "<div style='height:8px'></div>"
 )
 
 
@@ -897,7 +808,7 @@ st.markdown(
 
 if current_page == "home":
 
-    render_html(
+    st.html(
         """
         <div class="hero">
 
@@ -934,7 +845,7 @@ if current_page == "home":
     )
 
 
-    render_html(
+    st.html(
         """
         <div class="content-section">
 
@@ -961,7 +872,7 @@ if current_page == "home":
     )
 
 
-    render_html(
+    st.html(
         """
         <div class="content-section">
 
@@ -1013,7 +924,7 @@ if current_page == "home":
 
         with col:
 
-            render_html(
+            st.html(
                 f"""
                 <div class="client-card">
 
@@ -1030,7 +941,7 @@ if current_page == "home":
             )
 
 
-    render_html(
+    st.html(
         """
         <div class="content-section">
 
@@ -1086,7 +997,7 @@ if current_page == "home":
 
         with col:
 
-            render_html(
+            st.html(
                 f"""
                 <div class="info-card">
 
@@ -1107,7 +1018,7 @@ if current_page == "home":
             )
 
 
-    render_html(
+    st.html(
         """
         <div class="content-section">
 
@@ -1171,7 +1082,7 @@ if current_page == "home":
 
         with obj_cols[i % 2]:
 
-            render_html(
+            st.html(
                 f"""
                 <div class="objective-card">
 
@@ -1188,7 +1099,7 @@ if current_page == "home":
             )
 
 
-    render_html(
+    st.html(
         """
         <div class="content-section">
 
@@ -1250,7 +1161,7 @@ if current_page == "home":
 
         with col:
 
-            render_html(
+            st.html(
                 f"""
                 <div class="stage-card">
 
@@ -1271,7 +1182,7 @@ if current_page == "home":
             )
 
 
-    render_html(
+    st.html(
         """
         <div class="content-section">
 
@@ -1342,7 +1253,7 @@ if current_page == "home":
 
         with resource_cols[i % 3]:
 
-            render_html(
+            st.html(
                 f"""
                 <div class="info-card">
 
@@ -1364,10 +1275,10 @@ if current_page == "home":
 
 
     # =====================================================
-    # ACCESS
+    # LOGIN / REGISTER
     # =====================================================
 
-    render_html(
+    st.html(
         """
         <div class="content-section">
 
@@ -1415,7 +1326,7 @@ if current_page == "home":
             go_to("register")
 
 
-    render_html(
+    st.html(
         """
         <div class="vision-panel">
 
@@ -1446,7 +1357,7 @@ if current_page == "home":
     )
 
 
-    render_html(
+    st.html(
         """
         <div class="cta-panel">
 
@@ -1470,7 +1381,7 @@ if current_page == "home":
 
 elif current_page == "register":
 
-    render_html(
+    st.html(
         """
         <div class="section-kicker">
             CREATE ACCOUNT
@@ -1546,10 +1457,14 @@ elif current_page == "register":
 
                 else:
 
-                    register_user(
+                    if register_user(
                         email,
                         password
-                    )
+                    ):
+
+                        st.success(
+                            "Registration successful! Please log in."
+                        )
 
 
     if st.button(
@@ -1567,7 +1482,7 @@ elif current_page == "register":
 
 elif current_page == "login":
 
-    render_html(
+    st.html(
         """
         <div class="section-kicker">
             ACADEMY ACCESS
@@ -1672,8 +1587,7 @@ elif current_page == "choose_team":
 
         go_to("login")
 
-
-    render_html(
+    st.html(
         """
         <div class="section-kicker">
             ACADEMY ACCESS
@@ -1706,7 +1620,7 @@ elif current_page == "choose_team":
 
         with team_cols[i % 2]:
 
-            render_html(
+            st.html(
                 f"""
                 <div class="team-card">
 
@@ -1751,8 +1665,7 @@ elif current_page == "teams":
 
         go_to("login")
 
-
-    render_html(
+    st.html(
         """
         <div class="section-kicker">
             OUR ENGINEERING TEAMS
@@ -1785,7 +1698,7 @@ elif current_page == "teams":
             )
 
 
-            render_html(
+            st.html(
                 f"""
                 <div class="team-card">
 
@@ -1846,7 +1759,7 @@ elif current_page == "dashboard":
     team = teams[team_code]
 
 
-    render_html(
+    st.html(
         f"""
         <div class="section-kicker">
             TEAM LEARNING SPACE
@@ -1869,13 +1782,9 @@ elif current_page == "dashboard":
     with top_cols[0]:
 
         st.markdown(
-            f"""
-            **Logged in as:** {st.session_state.current_user}
-
-            **Team:** {team['full_name']}
-
-            **Learning path:** General controls engineering
-            """
+            f"**Logged in as:** {st.session_state.current_user}  \n"
+            f"**Team:** {team['full_name']}  \n"
+            f"**Learning path:** General controls engineering"
         )
 
 
@@ -1941,7 +1850,7 @@ elif current_page == "dashboard":
 
 
     # =====================================================
-    # DOCUMENTS
+    # DOCUMENTS TAB
     # =====================================================
 
     with tab_docs:
@@ -1994,17 +1903,15 @@ elif current_page == "dashboard":
                             use_container_width=True,
                         ):
 
-                            if module["title"] not in st.session_state.completed_modules:
-
-                                st.session_state.completed_modules.append(
-                                    module["title"]
-                                )
+                            st.session_state.completed_modules.append(
+                                module["title"]
+                            )
 
                             st.rerun()
 
 
     # =====================================================
-    # VIDEOS
+    # VIDEOS TAB
     # =====================================================
 
     with tab_videos:
@@ -2063,7 +1970,7 @@ elif current_page == "dashboard":
 
 
     # =====================================================
-    # QUIZZES
+    # QUIZZES TAB
     # =====================================================
 
     with tab_quizzes:
@@ -2137,7 +2044,7 @@ elif current_page == "dashboard":
 
 
     # =====================================================
-    # PROGRESS
+    # PROGRESS TAB
     # =====================================================
 
     with tab_progress:
@@ -2188,7 +2095,7 @@ elif current_page == "dashboard":
 # FOOTER
 # =========================================================
 
-render_html(
+st.html(
     """
     <div class="footer">
 
