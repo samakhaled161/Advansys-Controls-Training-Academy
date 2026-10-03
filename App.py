@@ -24,28 +24,32 @@ supabase = create_client(
 # SESSION STATE + BROWSER NAVIGATION
 # =========================================================
 
-# Read the page from the browser URL.
-# Example:
-# ?page=home
-# ?page=login
-# ?page=register
-# ?page=dashboard
+VALID_PAGES = {
+    "home",
+    "register",
+    "login",
+    "choose_team",
+    "teams",
+    "dashboard",
+}
 
-url_page = st.query_params.get("page")
+# ---------------------------------------------------------
+# URL IS THE SOURCE OF TRUTH
+# ---------------------------------------------------------
 
-if "page" not in st.session_state:
+url_page = st.query_params.get("page", "home")
 
-    if url_page:
-        st.session_state.page = url_page
-    else:
-        st.session_state.page = "home"
+if url_page not in VALID_PAGES:
+    url_page = "home"
+    st.query_params["page"] = "home"
 
-else:
+# Always synchronize session state with browser URL.
+st.session_state.page = url_page
 
-    # Sync Streamlit with browser Back / Forward navigation.
-    if url_page and url_page != st.session_state.page:
-        st.session_state.page = url_page
 
+# ---------------------------------------------------------
+# OTHER SESSION STATE
+# ---------------------------------------------------------
 
 if "selected_team" not in st.session_state:
     st.session_state.selected_team = "PF"
@@ -63,14 +67,24 @@ if "current_user" not in st.session_state:
     st.session_state.current_user = None
 
 
+# ---------------------------------------------------------
+# NAVIGATION FUNCTION
+# ---------------------------------------------------------
+
 def go_to(page):
     """
-    Navigate to a page and update the browser URL.
-    This allows browser Back / Forward navigation.
+    Navigate to a page.
+
+    The query parameter is intentionally NOT followed by
+    st.rerun(). Streamlit handles the URL/history update,
+    which prevents URL/UI synchronization problems.
     """
 
-    st.session_state.page = page
+    if page not in VALID_PAGES:
+        page = "home"
+
     st.query_params["page"] = page
+    st.session_state.page = page
 
 
 def select_team(team):
@@ -748,7 +762,6 @@ nav1, nav2, nav3, spacer = st.columns([1, 1, 1, 5])
 with nav1:
     if st.button("⌂  Home", use_container_width=True):
         go_to("home")
-        st.rerun()
 
 with nav2:
     if st.button("▦  Teams", use_container_width=True):
@@ -756,7 +769,6 @@ with nav2:
             go_to("teams")
         else:
             go_to("login")
-        st.rerun()
 
 with nav3:
     if st.button("▤  Dashboard", use_container_width=True):
@@ -764,14 +776,24 @@ with nav3:
             go_to("dashboard")
         else:
             go_to("login")
-        st.rerun()
 
 st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+
+
+# =========================================================
+# CURRENT PAGE
+# =========================================================
+
+current_page = st.query_params.get("page", "home")
+
+if current_page not in VALID_PAGES:
+    current_page = "home"
+
 
 # =========================================================
 # HOME PAGE
 # =========================================================
-if st.session_state.page == "home":
+if current_page == "home":
 
     st.html(
         """
@@ -1081,7 +1103,6 @@ if st.session_state.page == "home":
             type="primary",
         ):
             go_to("login")
-            st.rerun()
 
     with auth_cols[1]:
         if st.button(
@@ -1090,7 +1111,6 @@ if st.session_state.page == "home":
             use_container_width=True,
         ):
             go_to("register")
-            st.rerun()
 
     st.html(
         """
@@ -1128,7 +1148,7 @@ if st.session_state.page == "home":
 # =========================================================
 # REGISTER PAGE
 # =========================================================
-elif st.session_state.page == "register":
+elif current_page == "register":
 
     st.markdown(
         """
@@ -1195,7 +1215,8 @@ elif st.session_state.page == "register":
                             "Registration successful! Please log in."
                         )
 
-                        st.rerun()
+                        # No st.rerun() here.
+                        # go_to("login") already updates navigation.
 
     if st.button(
         "← Back to Home",
@@ -1203,13 +1224,12 @@ elif st.session_state.page == "register":
         key="register_back",
     ):
         go_to("home")
-        st.rerun()
 
 
 # =========================================================
 # LOGIN PAGE
 # =========================================================
-elif st.session_state.page == "login":
+elif current_page == "login":
 
     st.markdown(
         """
@@ -1251,7 +1271,9 @@ elif st.session_state.page == "login":
                 if login_user(email, password):
 
                     st.success("Login successful!")
-                    st.rerun()
+
+                    # No st.rerun() here.
+                    # go_to("choose_team") handles navigation.
 
                 else:
 
@@ -1271,7 +1293,6 @@ elif st.session_state.page == "login":
             key="login_register",
         ):
             go_to("register")
-            st.rerun()
 
     with login_buttons[1]:
         if st.button(
@@ -1280,13 +1301,12 @@ elif st.session_state.page == "login":
             key="login_back",
         ):
             go_to("home")
-            st.rerun()
 
 
 # =========================================================
 # CHOOSE TEAM PAGE
 # =========================================================
-elif st.session_state.page == "choose_team":
+elif current_page == "choose_team":
 
     st.markdown(
         """
@@ -1331,17 +1351,16 @@ elif st.session_state.page == "choose_team":
                 type="primary",
             ):
                 select_team(team_code)
-                st.rerun()
 
 
 # =========================================================
 # TEAMS PAGE
 # =========================================================
-elif st.session_state.page == "teams":
+elif current_page == "teams":
 
     if not st.session_state.logged_in:
         go_to("login")
-        st.rerun()
+        st.stop()
 
     st.markdown(
         """
@@ -1384,17 +1403,16 @@ elif st.session_state.page == "teams":
                 type="primary",
             ):
                 select_team(team_code)
-                st.rerun()
 
 
 # =========================================================
 # DASHBOARD PAGE
 # =========================================================
-elif st.session_state.page == "dashboard":
+elif current_page == "dashboard":
 
     if not st.session_state.logged_in:
         go_to("login")
-        st.rerun()
+        st.stop()
 
     team_code = st.session_state.selected_team
     team = teams[team_code]
@@ -1427,7 +1445,6 @@ elif st.session_state.page == "dashboard":
             use_container_width=True,
         ):
             go_to("teams")
-            st.rerun()
 
     st.divider()
 
