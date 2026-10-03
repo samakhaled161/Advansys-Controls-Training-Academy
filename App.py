@@ -5,6 +5,7 @@ from supabase import create_client
 # =========================================================
 # PAGE CONFIG
 # =========================================================
+
 st.set_page_config(
     page_title="Advansys ESC | Controls Training Academy",
     page_icon="⚙️",
@@ -15,41 +16,15 @@ st.set_page_config(
 # =========================================================
 # SUPABASE
 # =========================================================
+
 supabase = create_client(
     st.secrets["SUPABASE_URL"],
     st.secrets["SUPABASE_KEY"]
 )
 
 # =========================================================
-# SESSION STATE + BROWSER NAVIGATION
+# SESSION STATE
 # =========================================================
-
-VALID_PAGES = {
-    "home",
-    "register",
-    "login",
-    "choose_team",
-    "teams",
-    "dashboard",
-}
-
-# ---------------------------------------------------------
-# URL IS THE SOURCE OF TRUTH
-# ---------------------------------------------------------
-
-url_page = st.query_params.get("page", "home")
-
-if url_page not in VALID_PAGES:
-    url_page = "home"
-    st.query_params["page"] = "home"
-
-# Always synchronize session state with browser URL.
-st.session_state.page = url_page
-
-
-# ---------------------------------------------------------
-# OTHER SESSION STATE
-# ---------------------------------------------------------
 
 if "selected_team" not in st.session_state:
     st.session_state.selected_team = "PF"
@@ -67,109 +42,10 @@ if "current_user" not in st.session_state:
     st.session_state.current_user = None
 
 
-# ---------------------------------------------------------
-# NAVIGATION FUNCTION
-# ---------------------------------------------------------
-
-def go_to(page):
-    """
-    Navigate to a page.
-
-    The query parameter is intentionally NOT followed by
-    st.rerun(). Streamlit handles the URL/history update,
-    which prevents URL/UI synchronization problems.
-    """
-
-    if page not in VALID_PAGES:
-        page = "home"
-
-    st.query_params["page"] = page
-    st.session_state.page = page
-
-
-def select_team(team):
-    st.session_state.selected_team = team
-    go_to("dashboard")
-
-
-def is_valid_company_email(email):
-    pattern = r"^[A-Za-z]+\.[A-Za-z]+@advansys-esc\.com$"
-    return re.fullmatch(pattern, email) is not None
-
-
-# =========================================================
-# AUTH FUNCTIONS
-# =========================================================
-def register_user(email, password):
-    try:
-
-        response = supabase.auth.sign_up(
-            {
-                "email": email,
-                "password": password,
-            }
-        )
-
-        if response.user is not None:
-
-            st.session_state.current_user = email
-            go_to("login")
-
-            return True
-
-        return False
-
-    except Exception as e:
-
-        error_message = str(e).lower()
-
-        if (
-            "already registered" in error_message
-            or "already exists" in error_message
-            or "user already registered" in error_message
-        ):
-
-            st.error(
-                "This account is already registered."
-            )
-
-        else:
-
-            st.error(
-                "Registration failed. Please try again."
-            )
-
-        return False
-
-
-def login_user(email, password):
-    try:
-
-        response = supabase.auth.sign_in_with_password(
-            {
-                "email": email,
-                "password": password,
-            }
-        )
-
-        if response.user is not None:
-
-            st.session_state.logged_in = True
-            st.session_state.current_user = email
-            go_to("choose_team")
-
-            return True
-
-        return False
-
-    except Exception:
-
-        return False
-
-
 # =========================================================
 # TEAM DATA
 # =========================================================
+
 teams = {
     "PF": {
         "name": "PF Team",
@@ -221,9 +97,11 @@ teams = {
     },
 }
 
+
 # =========================================================
 # TRAINING CONTENT
 # =========================================================
+
 modules = [
     {
         "title": "Company Introduction",
@@ -251,9 +129,11 @@ modules = [
     },
 ]
 
+
 # =========================================================
 # CUSTOM CSS
 # =========================================================
+
 st.markdown(
     """
     <style>
@@ -741,59 +621,106 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+
 # =========================================================
-# TOP NAVIGATION
+# AUTH FUNCTIONS
 # =========================================================
-st.markdown(
+
+def is_valid_company_email(email):
+    pattern = r"^[A-Za-z]+\.[A-Za-z]+@advansys-esc\.com$"
+    return re.fullmatch(pattern, email) is not None
+
+
+def go_to(page):
     """
-    <div class="topbar">
-        <div>
-            <div class="logo-text">ADVANSYS <span class="logo-green">ESC</span></div>
-            <div class="academy-name">CONTROLS TRAINING ACADEMY</div>
-        </div>
-        <div class="topbar-tag">ENGINEERING LEARNING PLATFORM</div>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
+    Native Streamlit navigation.
 
-nav1, nav2, nav3, spacer = st.columns([1, 1, 1, 5])
+    This replaces the old query-parameter routing.
+    Browser Back / Forward is now handled by Streamlit.
+    """
 
-with nav1:
-    if st.button("⌂  Home", use_container_width=True):
-        go_to("home")
+    if page in PAGE_OBJECTS:
+        st.switch_page(PAGE_OBJECTS[page])
 
-with nav2:
-    if st.button("▦  Teams", use_container_width=True):
-        if st.session_state.logged_in:
-            go_to("teams")
-        else:
+
+def select_team(team):
+    st.session_state.selected_team = team
+    go_to("dashboard")
+
+
+def register_user(email, password):
+    try:
+
+        response = supabase.auth.sign_up(
+            {
+                "email": email,
+                "password": password,
+            }
+        )
+
+        if response.user is not None:
+
+            st.session_state.current_user = email
             go_to("login")
 
-with nav3:
-    if st.button("▤  Dashboard", use_container_width=True):
-        if st.session_state.logged_in:
-            go_to("dashboard")
+            return True
+
+        return False
+
+    except Exception as e:
+
+        error_message = str(e).lower()
+
+        if (
+            "already registered" in error_message
+            or "already exists" in error_message
+            or "user already registered" in error_message
+        ):
+
+            st.error(
+                "This account is already registered."
+            )
+
         else:
-            go_to("login")
 
-st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+            st.error(
+                "Registration failed. Please try again."
+            )
+
+        return False
+
+
+def login_user(email, password):
+    try:
+
+        response = supabase.auth.sign_in_with_password(
+            {
+                "email": email,
+                "password": password,
+            }
+        )
+
+        if response.user is not None:
+
+            st.session_state.logged_in = True
+            st.session_state.current_user = email
+
+            go_to("choose_team")
+
+            return True
+
+        return False
+
+    except Exception:
+
+        return False
 
 
 # =========================================================
-# CURRENT PAGE
+# PAGE FUNCTIONS
 # =========================================================
 
-current_page = st.query_params.get("page", "home")
-
-if current_page not in VALID_PAGES:
-    current_page = "home"
-
-
-# =========================================================
-# HOME PAGE
-# =========================================================
-if current_page == "home":
+def home_page():
 
     st.html(
         """
@@ -1076,10 +1003,6 @@ if current_page == "home":
                 """
             )
 
-    # =====================================================
-    # LOGIN / REGISTER
-    # =====================================================
-
     st.html(
         """
         <div class="content-section">
@@ -1148,7 +1071,8 @@ if current_page == "home":
 # =========================================================
 # REGISTER PAGE
 # =========================================================
-elif current_page == "register":
+
+def register_page():
 
     st.markdown(
         """
@@ -1215,9 +1139,6 @@ elif current_page == "register":
                             "Registration successful! Please log in."
                         )
 
-                        # No st.rerun() here.
-                        # go_to("login") already updates navigation.
-
     if st.button(
         "← Back to Home",
         use_container_width=True,
@@ -1229,7 +1150,8 @@ elif current_page == "register":
 # =========================================================
 # LOGIN PAGE
 # =========================================================
-elif current_page == "login":
+
+def login_page():
 
     st.markdown(
         """
@@ -1272,9 +1194,6 @@ elif current_page == "login":
 
                     st.success("Login successful!")
 
-                    # No st.rerun() here.
-                    # go_to("choose_team") handles navigation.
-
                 else:
 
                     st.error(
@@ -1306,7 +1225,8 @@ elif current_page == "login":
 # =========================================================
 # CHOOSE TEAM PAGE
 # =========================================================
-elif current_page == "choose_team":
+
+def choose_team_page():
 
     st.markdown(
         """
@@ -1356,11 +1276,12 @@ elif current_page == "choose_team":
 # =========================================================
 # TEAMS PAGE
 # =========================================================
-elif current_page == "teams":
+
+def teams_page():
 
     if not st.session_state.logged_in:
         go_to("login")
-        st.stop()
+        return
 
     st.markdown(
         """
@@ -1408,11 +1329,12 @@ elif current_page == "teams":
 # =========================================================
 # DASHBOARD PAGE
 # =========================================================
-elif current_page == "dashboard":
+
+def dashboard_page():
 
     if not st.session_state.logged_in:
         go_to("login")
-        st.stop()
+        return
 
     team_code = st.session_state.selected_team
     team = teams[team_code]
@@ -1483,6 +1405,7 @@ elif current_page == "dashboard":
     # -----------------------------------------------------
     # DOCUMENTS TAB
     # -----------------------------------------------------
+
     with tab_docs:
 
         st.subheader("Training Modules")
@@ -1535,6 +1458,7 @@ elif current_page == "dashboard":
     # -----------------------------------------------------
     # VIDEOS TAB
     # -----------------------------------------------------
+
     with tab_videos:
 
         st.subheader("Training Videos")
@@ -1583,6 +1507,7 @@ elif current_page == "dashboard":
     # -----------------------------------------------------
     # QUIZZES TAB
     # -----------------------------------------------------
+
     with tab_quizzes:
 
         st.subheader("Knowledge Check")
@@ -1646,6 +1571,7 @@ elif current_page == "dashboard":
     # -----------------------------------------------------
     # PROGRESS TAB
     # -----------------------------------------------------
+
     with tab_progress:
 
         st.subheader("My Learning Progress")
@@ -1681,8 +1607,147 @@ elif current_page == "dashboard":
 
 
 # =========================================================
+# STREAMLIT NATIVE NAVIGATION
+# =========================================================
+
+HOME_PAGE = st.Page(
+    home_page,
+    title="Home",
+    url_path="",
+    default=True,
+)
+
+REGISTER_PAGE = st.Page(
+    register_page,
+    title="Register",
+    url_path="register",
+)
+
+LOGIN_PAGE = st.Page(
+    login_page,
+    title="Login",
+    url_path="login",
+)
+
+CHOOSE_TEAM_PAGE = st.Page(
+    choose_team_page,
+    title="Choose Team",
+    url_path="choose-team",
+)
+
+TEAMS_PAGE = st.Page(
+    teams_page,
+    title="Teams",
+    url_path="teams",
+)
+
+DASHBOARD_PAGE = st.Page(
+    dashboard_page,
+    title="Dashboard",
+    url_path="dashboard",
+)
+
+
+# Page lookup used by go_to()
+PAGE_OBJECTS = {
+    "home": HOME_PAGE,
+    "register": REGISTER_PAGE,
+    "login": LOGIN_PAGE,
+    "choose_team": CHOOSE_TEAM_PAGE,
+    "teams": TEAMS_PAGE,
+    "dashboard": DASHBOARD_PAGE,
+}
+
+
+# =========================================================
+# TOP NAVIGATION
+# =========================================================
+
+st.markdown(
+    """
+    <div class="topbar">
+        <div>
+            <div class="logo-text">ADVANSYS <span class="logo-green">ESC</span></div>
+            <div class="academy-name">CONTROLS TRAINING ACADEMY</div>
+        </div>
+        <div class="topbar-tag">ENGINEERING LEARNING PLATFORM</div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
+
+nav1, nav2, nav3, spacer = st.columns([1, 1, 1, 5])
+
+with nav1:
+
+    if st.button(
+        "⌂  Home",
+        use_container_width=True,
+    ):
+        go_to("home")
+
+
+with nav2:
+
+    if st.button(
+        "▦  Teams",
+        use_container_width=True,
+    ):
+
+        if st.session_state.logged_in:
+            go_to("teams")
+        else:
+            go_to("login")
+
+
+with nav3:
+
+    if st.button(
+        "▤  Dashboard",
+        use_container_width=True,
+    ):
+
+        if st.session_state.logged_in:
+            go_to("dashboard")
+        else:
+            go_to("login")
+
+
+st.markdown(
+    "<div style='height:8px'></div>",
+    unsafe_allow_html=True,
+)
+
+
+# =========================================================
+# NATIVE STREAMLIT ROUTER
+# =========================================================
+
+pg = st.navigation(
+    [
+        HOME_PAGE,
+        REGISTER_PAGE,
+        LOGIN_PAGE,
+        CHOOSE_TEAM_PAGE,
+        TEAMS_PAGE,
+        DASHBOARD_PAGE,
+    ],
+    position="hidden",
+)
+
+
+# =========================================================
+# RUN CURRENT PAGE
+# =========================================================
+
+pg.run()
+
+
+# =========================================================
 # FOOTER
 # =========================================================
+
 st.markdown(
     """
     <div class="footer">
