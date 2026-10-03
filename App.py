@@ -7,7 +7,7 @@ from supabase import create_client
 # =========================================================
 st.set_page_config(
     page_title="Advansys ESC | Controls Training Academy",
-    page_icon="advansys_logo.png",
+    page_icon="advansys_favicon.ico",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
