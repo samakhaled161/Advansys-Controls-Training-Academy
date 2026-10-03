@@ -1,5 +1,6 @@
 import streamlit as st
 import re
+import base64
 from supabase import create_client
 
 # =========================================================
@@ -44,7 +45,13 @@ if "logged_in" not in st.session_state:
 if "current_user" not in st.session_state:
     st.session_state.current_user = None
 
+if "profile_image" not in st.session_state:
+    st.session_state.profile_image = None
 
+
+# =========================================================
+# NAVIGATION FUNCTIONS
+# =========================================================
 def go_to(page):
     st.session_state.page = page
 
@@ -61,6 +68,75 @@ def is_valid_company_email(email):
 
 
 # =========================================================
+# ACCOUNT FUNCTIONS
+# =========================================================
+def get_display_name(email):
+    if not email:
+        return "User"
+
+    name = email.split("@")[0]
+    name = name.replace(".", " ")
+
+    return " ".join(
+        word.capitalize()
+        for word in name.split()
+    )
+
+
+def get_profile_image_html():
+    if st.session_state.profile_image:
+
+        image_base64 = base64.b64encode(
+            st.session_state.profile_image
+        ).decode()
+
+        return f"""
+        <img
+            src="data:image/png;base64,{image_base64}"
+            style="
+                width:38px;
+                height:38px;
+                border-radius:50%;
+                object-fit:cover;
+                border:2px solid #7dbb43;
+            "
+        >
+        """
+
+    return """
+    <div style="
+        width:38px;
+        height:38px;
+        border-radius:50%;
+        background:#eef3f6;
+        border:2px solid #dce5ea;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        font-size:19px;
+    ">
+        👤
+    </div>
+    """
+
+
+def logout_user():
+    try:
+        supabase.auth.sign_out()
+    except Exception:
+        pass
+
+    st.session_state.logged_in = False
+    st.session_state.current_user = None
+    st.session_state.selected_team = "PF"
+    st.session_state.selected_team_leader = None
+    st.session_state.completed_modules = []
+    st.session_state.quiz_score = None
+    st.session_state.profile_image = None
+    st.session_state.page = "home"
+
+
+# =========================================================
 # AUTH FUNCTIONS
 # =========================================================
 def register_user(email, password):
@@ -73,7 +149,6 @@ def register_user(email, password):
             }
         )
 
-        # Supabase returns a user when registration succeeds.
         if response.user is not None:
 
             st.session_state.current_user = email
@@ -744,15 +819,67 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+# =========================================================
+# LOGGED-IN ACCOUNT BAR
+# =========================================================
+if (
+    st.session_state.logged_in
+    and st.session_state.current_user
+):
+
+    account_cols = st.columns([5.5, 1.5, 1.5])
+
+    with account_cols[1]:
+
+        st.markdown(
+            f"""
+            <div style="
+                display:flex;
+                align-items:center;
+                gap:8px;
+                justify-content:center;
+                padding-top:4px;
+            ">
+                {get_profile_image_html()}
+                <div style="
+                    color:#203447;
+                    font-size:12px;
+                    font-weight:700;
+                    white-space:nowrap;
+                ">
+                    {get_display_name(st.session_state.current_user)}
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    with account_cols[2]:
+
+        if st.button(
+            "Sign Out",
+            key="top_sign_out",
+            use_container_width=True,
+        ):
+            logout_user()
+            st.rerun()
+
+
 nav1, nav2, nav3, spacer = st.columns([1, 1, 1, 5])
 
 with nav1:
-    if st.button("⌂  Home", use_container_width=True):
+    if st.button(
+        "⌂  Home",
+        use_container_width=True,
+    ):
         go_to("home")
         st.rerun()
 
 with nav2:
-    if st.button("▦  Teams", use_container_width=True):
+    if st.button(
+        "▦  Teams",
+        use_container_width=True,
+    ):
         if st.session_state.logged_in:
             go_to("teams")
         else:
@@ -760,14 +887,20 @@ with nav2:
         st.rerun()
 
 with nav3:
-    if st.button("▤  Dashboard", use_container_width=True):
+    if st.button(
+        "▤  Dashboard",
+        use_container_width=True,
+    ):
         if st.session_state.logged_in:
             go_to("dashboard")
         else:
             go_to("login")
         st.rerun()
 
-st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+st.markdown(
+    "<div style='height:8px'></div>",
+    unsafe_allow_html=True,
+)
 
 # =========================================================
 # HOME PAGE
@@ -828,13 +961,27 @@ if st.session_state.page == "home":
     client_cols = st.columns(3)
 
     clients = [
-        ("Dematic", "Warehouse automation and material handling solutions."),
-        ("Amazon", "Automation systems supporting warehouse operations."),
-        ("Daifuku", "Material handling and automated logistics solutions."),
+        (
+            "Dematic",
+            "Warehouse automation and material handling solutions.",
+        ),
+        (
+            "Amazon",
+            "Automation systems supporting warehouse operations.",
+        ),
+        (
+            "Daifuku",
+            "Material handling and automated logistics solutions.",
+        ),
     ]
 
-    for col, (client_name, client_desc) in zip(client_cols, clients):
+    for col, (client_name, client_desc) in zip(
+        client_cols,
+        clients,
+    ):
+
         with col:
+
             st.html(
                 f"""
                 <div class="client-card">
@@ -878,8 +1025,13 @@ if st.session_state.page == "home":
         ),
     ]
 
-    for col, (icon, title, description) in zip(solution_cols, solutions):
+    for col, (icon, title, description) in zip(
+        solution_cols,
+        solutions,
+    ):
+
         with col:
+
             st.html(
                 f"""
                 <div class="info-card">
@@ -933,7 +1085,9 @@ if st.session_state.page == "home":
     obj_cols = st.columns(2)
 
     for i, (title, description) in enumerate(objectives):
+
         with obj_cols[i % 2]:
+
             st.html(
                 f"""
                 <div class="objective-card">
@@ -982,8 +1136,13 @@ if st.session_state.page == "home":
 
     stage_cols = st.columns(4)
 
-    for col, (number, title, description) in zip(stage_cols, stages):
+    for col, (number, title, description) in zip(
+        stage_cols,
+        stages,
+    ):
+
         with col:
+
             st.html(
                 f"""
                 <div class="stage-card">
@@ -1044,7 +1203,9 @@ if st.session_state.page == "home":
     ]
 
     for i, (icon, title, description) in enumerate(resources):
+
         with resource_cols[i % 3]:
+
             st.html(
                 f"""
                 <div class="info-card">
@@ -1059,39 +1220,45 @@ if st.session_state.page == "home":
     # LOGIN / REGISTER
     # =====================================================
 
-    st.html(
-        """
-        <div class="content-section">
-            <div class="section-kicker">ACCESS THE ACADEMY</div>
-            <div class="section-title">Start Your Learning Journey</div>
-            <div class="section-description">
-                Sign in with your Advansys ESC account or create a new account
-                using your company email address.
+    if not st.session_state.logged_in:
+
+        st.html(
+            """
+            <div class="content-section">
+                <div class="section-kicker">ACCESS THE ACADEMY</div>
+                <div class="section-title">Start Your Learning Journey</div>
+                <div class="section-description">
+                    Sign in with your Advansys ESC account or create a new account
+                    using your company email address.
+                </div>
             </div>
-        </div>
-        """
-    )
+            """
+        )
 
-    auth_cols = st.columns(2)
+        auth_cols = st.columns(2)
 
-    with auth_cols[0]:
-        if st.button(
-            "🔐  LOG IN",
-            key="home_login",
-            use_container_width=True,
-            type="primary",
-        ):
-            st.session_state.page = "login"
-            st.rerun()
+        with auth_cols[0]:
 
-    with auth_cols[1]:
-        if st.button(
-            "📝  REGISTER",
-            key="home_register",
-            use_container_width=True,
-        ):
-            st.session_state.page = "register"
-            st.rerun()
+            if st.button(
+                "🔐  LOG IN",
+                key="home_login",
+                use_container_width=True,
+                type="primary",
+            ):
+
+                st.session_state.page = "login"
+                st.rerun()
+
+        with auth_cols[1]:
+
+            if st.button(
+                "📝  REGISTER",
+                key="home_register",
+                use_container_width=True,
+            ):
+
+                st.session_state.page = "register"
+                st.rerun()
 
     st.html(
         """
@@ -1182,15 +1349,22 @@ elif st.session_state.page == "register":
 
                 elif not password:
 
-                    st.warning("Please enter a password.")
+                    st.warning(
+                        "Please enter a password."
+                    )
 
                 elif password != confirm_password:
 
-                    st.error("Passwords do not match.")
+                    st.error(
+                        "Passwords do not match."
+                    )
 
                 else:
 
-                    if register_user(email, password):
+                    if register_user(
+                        email,
+                        password,
+                    ):
 
                         st.success(
                             "Registration successful! Please log in."
@@ -1203,6 +1377,7 @@ elif st.session_state.page == "register":
         use_container_width=True,
         key="register_back",
     ):
+
         st.session_state.page = "home"
         st.rerun()
 
@@ -1249,9 +1424,15 @@ elif st.session_state.page == "login":
 
                 email = email.strip().lower()
 
-                if login_user(email, password):
+                if login_user(
+                    email,
+                    password,
+                ):
 
-                    st.success("Login successful!")
+                    st.success(
+                        "Login successful!"
+                    )
+
                     st.rerun()
 
                 else:
@@ -1261,25 +1442,32 @@ elif st.session_state.page == "login":
                         "Please check your credentials or register first."
                     )
 
-    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown(
+        "<br>",
+        unsafe_allow_html=True,
+    )
 
     login_buttons = st.columns(2)
 
     with login_buttons[0]:
+
         if st.button(
             "Create a New Account",
             use_container_width=True,
             key="login_register",
         ):
+
             st.session_state.page = "register"
             st.rerun()
 
     with login_buttons[1]:
+
         if st.button(
             "← Back to Home",
             use_container_width=True,
             key="login_back",
         ):
+
             st.session_state.page = "home"
             st.rerun()
 
@@ -1309,7 +1497,9 @@ elif st.session_state.page == "choose_team":
 
     team_cols = st.columns(2)
 
-    for i, (team_code, team) in enumerate(teams.items()):
+    for i, (team_code, team) in enumerate(
+        teams.items()
+    ):
 
         with team_cols[i % 2]:
 
@@ -1326,10 +1516,6 @@ elif st.session_state.page == "choose_team":
                 """
             )
 
-            # -------------------------------------------------
-            # TEAM LEADER SELECTION
-            # -------------------------------------------------
-
             if team_code == "AMZ":
 
                 selected_leader = "Samir Alfons"
@@ -1345,10 +1531,6 @@ elif st.session_state.page == "choose_team":
                     team_leaders[team_code],
                     key=f"leader_{team_code}",
                 )
-
-            # -------------------------------------------------
-            # CONTINUE BUTTON
-            # -------------------------------------------------
 
             if st.button(
                 f"Continue with {team_code}",
@@ -1371,6 +1553,7 @@ elif st.session_state.page == "choose_team":
 elif st.session_state.page == "teams":
 
     if not st.session_state.logged_in:
+
         st.session_state.page = "login"
         st.rerun()
 
@@ -1388,7 +1571,9 @@ elif st.session_state.page == "teams":
 
     team_cols = st.columns(2)
 
-    for i, (team_code, team) in enumerate(teams.items()):
+    for i, (team_code, team) in enumerate(
+        teams.items()
+    ):
 
         with team_cols[i % 2]:
 
@@ -1414,17 +1599,21 @@ elif st.session_state.page == "teams":
                 use_container_width=True,
                 type="primary",
             ):
-                # Keep the previously selected leader if this team
-                # was selected from the Choose Team page.
+
                 if (
                     st.session_state.selected_team_leader is None
                     or st.session_state.selected_team != team_code
                 ):
 
                     if team_code == "AMZ":
+
                         selected_leader = "Samir Alfons"
+
                     else:
-                        selected_leader = team_leaders[team_code][0]
+
+                        selected_leader = team_leaders[
+                            team_code
+                        ][0]
 
                     select_team(
                         team_code,
@@ -1447,21 +1636,27 @@ elif st.session_state.page == "teams":
 elif st.session_state.page == "dashboard":
 
     if not st.session_state.logged_in:
+
         st.session_state.page = "login"
         st.rerun()
 
     team_code = st.session_state.selected_team
+
     team = teams[team_code]
 
     team_leader = st.session_state.selected_team_leader
 
-    # Safety fallback in case the dashboard is opened directly.
     if team_leader is None:
 
         if team_code == "AMZ":
+
             team_leader = "Samir Alfons"
+
         else:
-            team_leader = team_leaders[team_code][0]
+
+            team_leader = team_leaders[
+                team_code
+            ][0]
 
         st.session_state.selected_team_leader = team_leader
 
@@ -1493,14 +1688,95 @@ elif st.session_state.page == "dashboard":
             "← Back to Teams",
             use_container_width=True,
         ):
+
             go_to("teams")
             st.rerun()
 
     st.divider()
 
-    completed_count = len(st.session_state.completed_modules)
+    # =====================================================
+    # PROFILE
+    # =====================================================
+    with st.expander("👤 My Profile"):
+
+        profile_cols = st.columns([1, 3])
+
+        with profile_cols[0]:
+
+            if st.session_state.profile_image:
+
+                st.image(
+                    st.session_state.profile_image,
+                    width=110,
+                )
+
+            else:
+
+                st.markdown(
+                    """
+                    <div style="
+                        width:100px;
+                        height:100px;
+                        border-radius:50%;
+                        background:#eef3f6;
+                        border:2px solid #dce5ea;
+                        display:flex;
+                        align-items:center;
+                        justify-content:center;
+                        font-size:45px;
+                    ">
+                        👤
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+
+        with profile_cols[1]:
+
+            st.markdown(
+                f"### {get_display_name(st.session_state.current_user)}"
+            )
+
+            st.caption(
+                st.session_state.current_user
+            )
+
+            uploaded_image = st.file_uploader(
+                "Upload Profile Picture",
+                type=[
+                    "png",
+                    "jpg",
+                    "jpeg",
+                ],
+                key="profile_image_uploader",
+            )
+
+            if uploaded_image is not None:
+
+                st.session_state.profile_image = (
+                    uploaded_image.getvalue()
+                )
+
+                st.success(
+                    "Profile picture updated."
+                )
+
+                st.rerun()
+
+    # =====================================================
+    # PROGRESS
+    # =====================================================
+    completed_count = len(
+        st.session_state.completed_modules
+    )
+
     total_modules = len(modules)
-    progress = completed_count / total_modules if total_modules else 0
+
+    progress = (
+        completed_count / total_modules
+        if total_modules
+        else 0
+    )
 
     p1, p2, p3 = st.columns(3)
 
@@ -1530,12 +1806,14 @@ elif st.session_state.page == "dashboard":
         ]
     )
 
-    # -----------------------------------------------------
+    # =====================================================
     # DOCUMENTS TAB
-    # -----------------------------------------------------
+    # =====================================================
     with tab_docs:
 
-        st.subheader("Training Modules")
+        st.subheader(
+            "Training Modules"
+        )
 
         st.caption(
             "Browse the learning modules assigned to this academy space. "
@@ -1564,9 +1842,14 @@ elif st.session_state.page == "dashboard":
 
                 with c2:
 
-                    if module["title"] in st.session_state.completed_modules:
+                    if (
+                        module["title"]
+                        in st.session_state.completed_modules
+                    ):
 
-                        st.success("Completed")
+                        st.success(
+                            "Completed"
+                        )
 
                     else:
 
@@ -1582,12 +1865,14 @@ elif st.session_state.page == "dashboard":
 
                             st.rerun()
 
-    # -----------------------------------------------------
+    # =====================================================
     # VIDEOS TAB
-    # -----------------------------------------------------
+    # =====================================================
     with tab_videos:
 
-        st.subheader("Training Videos")
+        st.subheader(
+            "Training Videos"
+        )
 
         st.write(
             "Training videos can be organized here by topic, team, "
@@ -1630,12 +1915,14 @@ elif st.session_state.page == "dashboard":
                     "Add a video link or file when the training material is ready."
                 )
 
-    # -----------------------------------------------------
+    # =====================================================
     # QUIZZES TAB
-    # -----------------------------------------------------
+    # =====================================================
     with tab_quizzes:
 
-        st.subheader("Knowledge Check")
+        st.subheader(
+            "Knowledge Check"
+        )
 
         st.write(
             "Answer this sample question to review a basic "
@@ -1665,7 +1952,10 @@ elif st.session_state.page == "dashboard":
                     "Please select an answer first."
                 )
 
-            elif answer == "To transport materials between process areas":
+            elif (
+                answer
+                == "To transport materials between process areas"
+            ):
 
                 st.session_state.quiz_score = "correct"
 
@@ -1693,12 +1983,14 @@ elif st.session_state.page == "dashboard":
                 "Latest quiz result: Try again"
             )
 
-    # -----------------------------------------------------
+    # =====================================================
     # PROGRESS TAB
-    # -----------------------------------------------------
+    # =====================================================
     with tab_progress:
 
-        st.subheader("My Learning Progress")
+        st.subheader(
+            "My Learning Progress"
+        )
 
         st.metric(
             "Modules Completed",
@@ -1716,9 +2008,13 @@ elif st.session_state.page == "dashboard":
 
         else:
 
-            st.markdown("**Completed modules**")
+            st.markdown(
+                "**Completed modules**"
+            )
 
-            for completed in st.session_state.completed_modules:
+            for completed in (
+                st.session_state.completed_modules
+            ):
 
                 st.markdown(
                     f"- ✅ {completed}"
