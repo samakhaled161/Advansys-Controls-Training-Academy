@@ -1063,7 +1063,7 @@ elif st.session_state.page == "register":
 
             email = st.text_input(
                 "Company Email",
-                placeholder="first.second@advansys-esc.com",
+                placeholder="Enter your company email",
                 key="register_email",
             )
 
@@ -1079,10 +1079,6 @@ elif st.session_state.page == "register":
                 key="register_confirm_password",
             )
 
-            st.caption(
-                "Email must follow: first.second@advansys-esc.com"
-            )
-
             if st.button(
                 "Create Account",
                 type="primary",
@@ -1094,8 +1090,7 @@ elif st.session_state.page == "register":
                 if not is_valid_company_email(email):
 
                     st.error(
-                        "Please use a valid Advansys ESC company email, "
-                        "for example: first.second@advansys-esc.com"
+                        "You must use your Advansys ESC company email."
                     )
 
                 elif not password:
@@ -1153,7 +1148,7 @@ elif st.session_state.page == "login":
 
             email = st.text_input(
                 "Company Email",
-                placeholder="first.second@advansys-esc.com",
+                placeholder="Enter your company email",
                 key="login_email",
             )
 
