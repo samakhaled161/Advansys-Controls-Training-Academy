@@ -1,5 +1,5 @@
-
 import streamlit as st
+import re
 
 # =========================================================
 # PAGE CONFIG
@@ -26,6 +26,15 @@ if "completed_modules" not in st.session_state:
 if "quiz_score" not in st.session_state:
     st.session_state.quiz_score = None
 
+if "users" not in st.session_state:
+    st.session_state.users = {}
+
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+
+if "current_user" not in st.session_state:
+    st.session_state.current_user = None
+
 
 def go_to(page):
     st.session_state.page = page
@@ -34,6 +43,28 @@ def go_to(page):
 def select_team(team):
     st.session_state.selected_team = team
     st.session_state.page = "dashboard"
+
+
+def is_valid_company_email(email):
+    pattern = r"^[A-Za-z]+\.[A-Za-z]+@advansys-esc\.com$"
+    return re.fullmatch(pattern, email) is not None
+
+
+def register_user(email, password):
+    st.session_state.users[email] = password
+    st.session_state.current_user = email
+    st.session_state.page = "login"
+
+
+def login_user(email, password):
+    if email in st.session_state.users:
+        if st.session_state.users[email] == password:
+            st.session_state.logged_in = True
+            st.session_state.current_user = email
+            st.session_state.page = "choose_team"
+            return True
+
+    return False
 
 
 # =========================================================
@@ -635,12 +666,18 @@ with nav1:
 
 with nav2:
     if st.button("▦  Teams", use_container_width=True):
-        go_to("teams")
+        if st.session_state.logged_in:
+            go_to("teams")
+        else:
+            go_to("login")
         st.rerun()
 
 with nav3:
     if st.button("▤  Dashboard", use_container_width=True):
-        go_to("dashboard")
+        if st.session_state.logged_in:
+            go_to("dashboard")
+        else:
+            go_to("login")
         st.rerun()
 
 st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
@@ -688,8 +725,6 @@ if st.session_state.page == "home":
         """
     )
 
-
-
     st.html(
         """
         <div class="content-section">
@@ -704,6 +739,7 @@ if st.session_state.page == "home":
     )
 
     client_cols = st.columns(3)
+
     clients = [
         ("Dematic", "Warehouse automation and material handling solutions."),
         ("Amazon", "Automation systems supporting warehouse operations."),
@@ -736,6 +772,7 @@ if st.session_state.page == "home":
     )
 
     solution_cols = st.columns(3)
+
     solutions = [
         (
             "📦",
@@ -807,6 +844,7 @@ if st.session_state.page == "home":
     ]
 
     obj_cols = st.columns(2)
+
     for i, (title, description) in enumerate(objectives):
         with obj_cols[i % 2]:
             st.html(
@@ -856,6 +894,7 @@ if st.session_state.page == "home":
     ]
 
     stage_cols = st.columns(4)
+
     for col, (number, title, description) in zip(stage_cols, stages):
         with col:
             st.html(
@@ -883,6 +922,7 @@ if st.session_state.page == "home":
     )
 
     resource_cols = st.columns(3)
+
     resources = [
         (
             "📄",
@@ -928,40 +968,43 @@ if st.session_state.page == "home":
                 """
             )
 
+    # =====================================================
+    # LOGIN / REGISTER
+    # =====================================================
+
     st.html(
         """
         <div class="content-section">
-            <div class="section-kicker">ENGINEERING TEAMS</div>
-            <div class="section-title">Explore Your Team's Learning Space</div>
+            <div class="section-kicker">ACCESS THE ACADEMY</div>
+            <div class="section-title">Start Your Learning Journey</div>
             <div class="section-description">
-                Choose a team to access its learning dashboard and
-                team-related resources.
+                Sign in with your Advansys ESC account or create a new account
+                using your company email address.
             </div>
         </div>
         """
     )
 
-    team_cols = st.columns(4)
-    for col, (team_code, team) in zip(team_cols, teams.items()):
-        with col:
-            st.html(
-                f"""
-                <div class="team-card">
-                    <div class="team-icon">{team["icon"]}</div>
-                    <div class="team-title">{team["name"]}</div>
-                    <div class="team-subtitle">{team["full_name"]}</div>
-                    <div class="team-description">{team["description"]}</div>
-                </div>
-                """
-            )
-            if st.button(
-                f"Explore {team_code}",
-                key=f"home_team_{team_code}",
-                use_container_width=True,
-                type="primary" if team_code == "PF" else "secondary",
-            ):
-                select_team(team_code)
-                st.rerun()
+    auth_cols = st.columns(2)
+
+    with auth_cols[0]:
+        if st.button(
+            "🔐  LOG IN",
+            key="home_login",
+            use_container_width=True,
+            type="primary",
+        ):
+            st.session_state.page = "login"
+            st.rerun()
+
+    with auth_cols[1]:
+        if st.button(
+            "📝  REGISTER",
+            key="home_register",
+            use_container_width=True,
+        ):
+            st.session_state.page = "register"
+            st.rerun()
 
     st.html(
         """
@@ -995,10 +1038,233 @@ if st.session_state.page == "home":
         """
     )
 
+
+# =========================================================
+# REGISTER PAGE
+# =========================================================
+elif st.session_state.page == "register":
+
+    st.markdown(
+        """
+        <div class="section-kicker">CREATE ACCOUNT</div>
+        <div class="page-heading">Register for the Academy</div>
+        <div class="page-subheading">
+            Create your Advansys ESC account using your company email address.
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    register_col = st.columns([1, 2, 1])[1]
+
+    with register_col:
+
+        with st.container(border=True):
+
+            email = st.text_input(
+                "Company Email",
+                placeholder="first.second@advansys-esc.com",
+                key="register_email",
+            )
+
+            password = st.text_input(
+                "Password",
+                type="password",
+                key="register_password",
+            )
+
+            confirm_password = st.text_input(
+                "Confirm Password",
+                type="password",
+                key="register_confirm_password",
+            )
+
+            st.caption(
+                "Email must follow: first.second@advansys-esc.com"
+            )
+
+            if st.button(
+                "Create Account",
+                type="primary",
+                use_container_width=True,
+            ):
+
+                email = email.strip().lower()
+
+                if not is_valid_company_email(email):
+
+                    st.error(
+                        "Please use a valid Advansys ESC company email, "
+                        "for example: first.second@advansys-esc.com"
+                    )
+
+                elif not password:
+
+                    st.warning("Please enter a password.")
+
+                elif password != confirm_password:
+
+                    st.error("Passwords do not match.")
+
+                elif email in st.session_state.users:
+
+                    st.error("This account is already registered.")
+
+                else:
+
+                    register_user(email, password)
+
+                    st.success(
+                        "Registration successful! Please log in."
+                    )
+
+                    st.rerun()
+
+    if st.button(
+        "← Back to Home",
+        use_container_width=True,
+        key="register_back",
+    ):
+        st.session_state.page = "home"
+        st.rerun()
+
+
+# =========================================================
+# LOGIN PAGE
+# =========================================================
+elif st.session_state.page == "login":
+
+    st.markdown(
+        """
+        <div class="section-kicker">ACADEMY ACCESS</div>
+        <div class="page-heading">Welcome Back</div>
+        <div class="page-subheading">
+            Log in using your Advansys ESC company account.
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    login_col = st.columns([1, 2, 1])[1]
+
+    with login_col:
+
+        with st.container(border=True):
+
+            email = st.text_input(
+                "Company Email",
+                placeholder="first.second@advansys-esc.com",
+                key="login_email",
+            )
+
+            password = st.text_input(
+                "Password",
+                type="password",
+                key="login_password",
+            )
+
+            if st.button(
+                "Log In",
+                type="primary",
+                use_container_width=True,
+            ):
+
+                email = email.strip().lower()
+
+                if login_user(email, password):
+
+                    st.success("Login successful!")
+                    st.rerun()
+
+                else:
+
+                    st.error(
+                        "Invalid email or password. "
+                        "Please check your credentials or register first."
+                    )
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    login_buttons = st.columns(2)
+
+    with login_buttons[0]:
+        if st.button(
+            "Create a New Account",
+            use_container_width=True,
+            key="login_register",
+        ):
+            st.session_state.page = "register"
+            st.rerun()
+
+    with login_buttons[1]:
+        if st.button(
+            "← Back to Home",
+            use_container_width=True,
+            key="login_back",
+        ):
+            st.session_state.page = "home"
+            st.rerun()
+
+
+# =========================================================
+# CHOOSE TEAM PAGE
+# =========================================================
+elif st.session_state.page == "choose_team":
+
+    st.markdown(
+        """
+        <div class="section-kicker">ACADEMY ACCESS</div>
+        <div class="page-heading">Choose Your Team</div>
+        <div class="page-subheading">
+            Select your engineering team to access the relevant learning dashboard.
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    if st.session_state.current_user:
+
+        st.caption(
+            f"Logged in as: {st.session_state.current_user}"
+        )
+
+    team_cols = st.columns(2)
+
+    for i, (team_code, team) in enumerate(teams.items()):
+
+        with team_cols[i % 2]:
+
+            st.html(
+                f"""
+                <div class="team-card">
+                    <div class="team-icon">{team["icon"]}</div>
+                    <div class="team-title">{team["name"]}</div>
+                    <div class="team-subtitle">{team["full_name"]}</div>
+                    <div class="team-description">
+                        {team["description"]}
+                    </div>
+                </div>
+                """
+            )
+
+            if st.button(
+                f"Continue with {team_code}",
+                key=f"choose_team_{team_code}",
+                use_container_width=True,
+                type="primary",
+            ):
+                select_team(team_code)
+                st.rerun()
+
+
 # =========================================================
 # TEAMS PAGE
 # =========================================================
 elif st.session_state.page == "teams":
+
+    if not st.session_state.logged_in:
+        st.session_state.page = "login"
+        st.rerun()
 
     st.markdown(
         """
@@ -1015,7 +1281,9 @@ elif st.session_state.page == "teams":
     team_cols = st.columns(2)
 
     for i, (team_code, team) in enumerate(teams.items()):
+
         with team_cols[i % 2]:
+
             st.html(
                 f"""
                 <div class="team-card">
@@ -1031,6 +1299,7 @@ elif st.session_state.page == "teams":
                 </div>
                 """
             )
+
             if st.button(
                 f"Open {team_code} Dashboard",
                 key=f"teams_open_{team_code}",
@@ -1040,10 +1309,15 @@ elif st.session_state.page == "teams":
                 select_team(team_code)
                 st.rerun()
 
+
 # =========================================================
 # DASHBOARD PAGE
 # =========================================================
 elif st.session_state.page == "dashboard":
+
+    if not st.session_state.logged_in:
+        st.session_state.page = "login"
+        st.rerun()
 
     team_code = st.session_state.selected_team
     team = teams[team_code]
@@ -1060,13 +1334,21 @@ elif st.session_state.page == "dashboard":
     )
 
     top_cols = st.columns([3, 1])
+
     with top_cols[0]:
+
         st.markdown(
+            f"**Logged in as:** {st.session_state.current_user}  \n"
             f"**Team:** {team['full_name']}  \n"
             f"**Learning path:** General controls engineering"
         )
+
     with top_cols[1]:
-        if st.button("← Back to Teams", use_container_width=True):
+
+        if st.button(
+            "← Back to Teams",
+            use_container_width=True,
+        ):
             go_to("teams")
             st.rerun()
 
@@ -1077,56 +1359,92 @@ elif st.session_state.page == "dashboard":
     progress = completed_count / total_modules if total_modules else 0
 
     p1, p2, p3 = st.columns(3)
-    p1.metric("Available Modules", total_modules)
-    p2.metric("Completed Modules", completed_count)
-    p3.metric("Progress", f"{progress * 100:.0f}%")
+
+    p1.metric(
+        "Available Modules",
+        total_modules,
+    )
+
+    p2.metric(
+        "Completed Modules",
+        completed_count,
+    )
+
+    p3.metric(
+        "Progress",
+        f"{progress * 100:.0f}%",
+    )
 
     st.progress(progress)
 
     tab_docs, tab_videos, tab_quizzes, tab_progress = st.tabs(
-        ["📄 Documents", "🎥 Videos", "📝 Quizzes", "📊 My Progress"]
+        [
+            "📄 Documents",
+            "🎥 Videos",
+            "📝 Quizzes",
+            "📊 My Progress",
+        ]
     )
 
     # -----------------------------------------------------
     # DOCUMENTS TAB
     # -----------------------------------------------------
     with tab_docs:
+
         st.subheader("Training Modules")
+
         st.caption(
             "Browse the learning modules assigned to this academy space. "
             "Training content can be added to each module."
         )
 
         for index, module in enumerate(modules):
+
             with st.container(border=True):
+
                 c1, c2 = st.columns([4, 1])
 
                 with c1:
-                    st.markdown(f"**{module['title']}**")
+
+                    st.markdown(
+                        f"**{module['title']}**"
+                    )
+
                     st.caption(
                         f"{module['category']}  •  {module['duration']}"
                     )
-                    st.write(module["description"])
+
+                    st.write(
+                        module["description"]
+                    )
 
                 with c2:
+
                     if module["title"] in st.session_state.completed_modules:
+
                         st.success("Completed")
+
                     else:
+
                         if st.button(
                             "Mark Complete",
                             key=f"complete_{team_code}_{index}",
                             use_container_width=True,
                         ):
+
                             st.session_state.completed_modules.append(
                                 module["title"]
                             )
+
                             st.rerun()
 
     # -----------------------------------------------------
     # VIDEOS TAB
     # -----------------------------------------------------
     with tab_videos:
+
         st.subheader("Training Videos")
+
         st.write(
             "Training videos can be organized here by topic, team, "
             "or engineering workflow."
@@ -1152,9 +1470,17 @@ elif st.session_state.page == "dashboard":
         ]
 
         for title, description in video_topics:
+
             with st.container(border=True):
-                st.markdown(f"**🎬 {title}**")
-                st.caption(description)
+
+                st.markdown(
+                    f"**🎬 {title}**"
+                )
+
+                st.caption(
+                    description
+                )
+
                 st.info(
                     "No video has been attached to this topic yet. "
                     "Add a video link or file when the training material is ready."
@@ -1164,7 +1490,9 @@ elif st.session_state.page == "dashboard":
     # QUIZZES TAB
     # -----------------------------------------------------
     with tab_quizzes:
+
         st.subheader("Knowledge Check")
+
         st.write(
             "Answer this sample question to review a basic "
             "warehouse automation concept."
@@ -1182,47 +1510,81 @@ elif st.session_state.page == "dashboard":
             key=f"quiz_answer_{team_code}",
         )
 
-        if st.button("Submit Answer", type="primary"):
+        if st.button(
+            "Submit Answer",
+            type="primary",
+        ):
+
             if answer is None:
-                st.warning("Please select an answer first.")
+
+                st.warning(
+                    "Please select an answer first."
+                )
+
             elif answer == "To transport materials between process areas":
+
                 st.session_state.quiz_score = "correct"
-                st.success("Correct! Conveyors transport materials between areas.")
+
+                st.success(
+                    "Correct! Conveyors transport materials between areas."
+                )
+
             else:
+
                 st.session_state.quiz_score = "incorrect"
-                st.error("Not quite. Review the warehouse automation fundamentals.")
+
+                st.error(
+                    "Not quite. Review the warehouse automation fundamentals."
+                )
 
         if st.session_state.quiz_score == "correct":
-            st.caption("Latest quiz result: Correct")
+
+            st.caption(
+                "Latest quiz result: Correct"
+            )
+
         elif st.session_state.quiz_score == "incorrect":
-            st.caption("Latest quiz result: Try again")
+
+            st.caption(
+                "Latest quiz result: Try again"
+            )
 
     # -----------------------------------------------------
     # PROGRESS TAB
     # -----------------------------------------------------
     with tab_progress:
+
         st.subheader("My Learning Progress")
 
         st.metric(
             "Modules Completed",
             f"{completed_count} / {total_modules}",
         )
+
         st.progress(progress)
 
         if completed_count == 0:
+
             st.info(
                 "You have not completed any modules yet. "
                 "Visit the Documents tab and mark a module as complete."
             )
+
         else:
+
             st.markdown("**Completed modules**")
+
             for completed in st.session_state.completed_modules:
-                st.markdown(f"- ✅ {completed}")
+
+                st.markdown(
+                    f"- ✅ {completed}"
+                )
 
         st.caption(
             "This is a simple in-session progress demo. "
             "Progress is not saved permanently after the app session ends."
         )
+
 
 # =========================================================
 # FOOTER
