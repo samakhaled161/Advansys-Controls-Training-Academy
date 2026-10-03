@@ -7,7 +7,7 @@ from supabase import create_client
 # =========================================================
 st.set_page_config(
     page_title="Advansys ESC | Controls Training Academy",
-    page_icon="⚙️",
+    page_icon="advansys_logo.png",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
@@ -29,6 +29,9 @@ if "page" not in st.session_state:
 if "selected_team" not in st.session_state:
     st.session_state.selected_team = "PF"
 
+if "selected_team_leader" not in st.session_state:
+    st.session_state.selected_team_leader = None
+
 if "completed_modules" not in st.session_state:
     st.session_state.completed_modules = []
 
@@ -46,8 +49,9 @@ def go_to(page):
     st.session_state.page = page
 
 
-def select_team(team):
+def select_team(team, team_leader):
     st.session_state.selected_team = team
+    st.session_state.selected_team_leader = team_leader
     st.session_state.page = "dashboard"
 
 
@@ -179,6 +183,29 @@ teams = {
             "Controls integration",
         ],
     },
+}
+
+# =========================================================
+# TEAM LEADERS
+# =========================================================
+team_leaders = {
+    "PF": [
+        "Abdullah Hamed",
+        "Mahmoud Hafez",
+    ],
+    "EMEA": [
+        "Abdelrahman Samy",
+        "Raed AbdelAziz",
+        "Ahmed Sobhy",
+        "Mostafa Farid",
+    ],
+    "FLEX": [
+        "Nour Osama",
+        "Mohamed Farghly",
+    ],
+    "AMZ": [
+        "Samir Alfons",
+    ],
 }
 
 # =========================================================
@@ -1267,7 +1294,8 @@ elif st.session_state.page == "choose_team":
         <div class="section-kicker">ACADEMY ACCESS</div>
         <div class="page-heading">Choose Your Team</div>
         <div class="page-subheading">
-            Select your engineering team to access the relevant learning dashboard.
+            Select your engineering team and team leader to access
+            the relevant learning dashboard.
         </div>
         """,
         unsafe_allow_html=True,
@@ -1298,13 +1326,42 @@ elif st.session_state.page == "choose_team":
                 """
             )
 
+            # -------------------------------------------------
+            # TEAM LEADER SELECTION
+            # -------------------------------------------------
+
+            if team_code == "AMZ":
+
+                selected_leader = "Samir Alfons"
+
+                st.caption(
+                    "Team Leader: Samir Alfons"
+                )
+
+            else:
+
+                selected_leader = st.selectbox(
+                    "Team Leader",
+                    team_leaders[team_code],
+                    key=f"leader_{team_code}",
+                )
+
+            # -------------------------------------------------
+            # CONTINUE BUTTON
+            # -------------------------------------------------
+
             if st.button(
                 f"Continue with {team_code}",
                 key=f"choose_team_{team_code}",
                 use_container_width=True,
                 type="primary",
             ):
-                select_team(team_code)
+
+                select_team(
+                    team_code,
+                    selected_leader,
+                )
+
                 st.rerun()
 
 
@@ -1357,7 +1414,30 @@ elif st.session_state.page == "teams":
                 use_container_width=True,
                 type="primary",
             ):
-                select_team(team_code)
+                # Keep the previously selected leader if this team
+                # was selected from the Choose Team page.
+                if (
+                    st.session_state.selected_team_leader is None
+                    or st.session_state.selected_team != team_code
+                ):
+
+                    if team_code == "AMZ":
+                        selected_leader = "Samir Alfons"
+                    else:
+                        selected_leader = team_leaders[team_code][0]
+
+                    select_team(
+                        team_code,
+                        selected_leader,
+                    )
+
+                else:
+
+                    select_team(
+                        team_code,
+                        st.session_state.selected_team_leader,
+                    )
+
                 st.rerun()
 
 
@@ -1372,6 +1452,18 @@ elif st.session_state.page == "dashboard":
 
     team_code = st.session_state.selected_team
     team = teams[team_code]
+
+    team_leader = st.session_state.selected_team_leader
+
+    # Safety fallback in case the dashboard is opened directly.
+    if team_leader is None:
+
+        if team_code == "AMZ":
+            team_leader = "Samir Alfons"
+        else:
+            team_leader = team_leaders[team_code][0]
+
+        st.session_state.selected_team_leader = team_leader
 
     st.markdown(
         f"""
@@ -1391,6 +1483,7 @@ elif st.session_state.page == "dashboard":
         st.markdown(
             f"**Logged in as:** {st.session_state.current_user}  \n"
             f"**Team:** {team['full_name']}  \n"
+            f"**Team Leader:** {team_leader}  \n"
             f"**Learning path:** General controls engineering"
         )
 
