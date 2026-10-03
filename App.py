@@ -2,9 +2,11 @@ import streamlit as st
 import re
 from supabase import create_client
 
+
 # =========================================================
 # PAGE CONFIG
 # =========================================================
+
 st.set_page_config(
     page_title="Advansys ESC | Controls Training Academy",
     page_icon="⚙️",
@@ -12,16 +14,19 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
+
 # =========================================================
 # SUPABASE
 # =========================================================
+
 supabase = create_client(
     st.secrets["SUPABASE_URL"],
     st.secrets["SUPABASE_KEY"]
 )
 
+
 # =========================================================
-# SESSION STATE + URL ROUTING
+# VALID PAGES
 # =========================================================
 
 VALID_PAGES = {
@@ -32,6 +37,11 @@ VALID_PAGES = {
     "teams",
     "dashboard",
 }
+
+
+# =========================================================
+# SESSION STATE
+# =========================================================
 
 if "selected_team" not in st.session_state:
     st.session_state.selected_team = "PF"
@@ -49,30 +59,35 @@ if "current_user" not in st.session_state:
     st.session_state.current_user = None
 
 
-# ---------------------------------------------------------
-# READ PAGE FROM URL
-# ---------------------------------------------------------
+# =========================================================
+# URL ROUTING
+# =========================================================
 
-url_page = st.query_params.get("page", "home")
+def get_current_page():
 
-if url_page not in VALID_PAGES:
-    url_page = "home"
-    st.query_params["page"] = "home"
+    page = st.query_params.get("page", "home")
 
-st.session_state.page = url_page
+    if page not in VALID_PAGES:
+        page = "home"
+        st.query_params["page"] = "home"
+
+    return page
 
 
-# ---------------------------------------------------------
-# NAVIGATION
-# ---------------------------------------------------------
+current_page = get_current_page()
+
 
 def go_to(page):
 
     if page not in VALID_PAGES:
         page = "home"
 
-    st.query_params["page"] = page
-    st.session_state.page = page
+    current_url_page = st.query_params.get("page", "home")
+
+    if current_url_page != page:
+        st.query_params["page"] = page
+
+    st.rerun()
 
 
 def select_team(team):
@@ -81,16 +96,28 @@ def select_team(team):
     go_to("dashboard")
 
 
+# =========================================================
+# HTML HELPER
+# =========================================================
+
+def render_html(content):
+
+    st.markdown(
+        content,
+        unsafe_allow_html=True
+    )
+
+
+# =========================================================
+# AUTH HELPERS
+# =========================================================
+
 def is_valid_company_email(email):
 
     pattern = r"^[A-Za-z]+\.[A-Za-z]+@advansys-esc\.com$"
 
     return re.fullmatch(pattern, email) is not None
 
-
-# =========================================================
-# AUTH FUNCTIONS
-# =========================================================
 
 def register_user(email, password):
 
@@ -106,6 +133,11 @@ def register_user(email, password):
         if response.user is not None:
 
             st.session_state.current_user = email
+
+            st.success(
+                "Registration successful! Please log in."
+            )
+
             go_to("login")
 
             return True
@@ -263,9 +295,10 @@ modules = [
 # CUSTOM CSS
 # =========================================================
 
-st.markdown(
+render_html(
     """
     <style>
+
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
     html, body, [class*="css"] {
@@ -277,7 +310,9 @@ st.markdown(
         color: #182230;
     }
 
-    #MainMenu, footer, header {
+    #MainMenu,
+    footer,
+    header {
         visibility: hidden;
     }
 
@@ -286,6 +321,10 @@ st.markdown(
         padding-top: 1.2rem;
         padding-bottom: 3rem;
     }
+
+    /* =====================================================
+       TOP BAR
+       ===================================================== */
 
     .topbar {
         display: flex;
@@ -327,8 +366,18 @@ st.markdown(
         padding: 9px 14px;
     }
 
+    /* =====================================================
+       HERO
+       ===================================================== */
+
     .hero {
-        background: linear-gradient(120deg, #102338 0%, #173a50 65%, #245a59 100%);
+        background: linear-gradient(
+            120deg,
+            #102338 0%,
+            #173a50 65%,
+            #245a59 100%
+        );
+
         border-radius: 22px;
         padding: 58px 54px;
         color: white;
@@ -346,8 +395,10 @@ st.markdown(
         border-radius: 50%;
         right: -70px;
         top: -90px;
-        box-shadow: 0 0 0 35px rgba(255,255,255,0.025),
-                    0 0 0 75px rgba(255,255,255,0.02);
+
+        box-shadow:
+            0 0 0 35px rgba(255,255,255,0.025),
+            0 0 0 75px rgba(255,255,255,0.02);
     }
 
     .hero-small {
@@ -392,6 +443,10 @@ st.markdown(
         margin-bottom: 8px;
     }
 
+    /* =====================================================
+       SECTIONS
+       ===================================================== */
+
     .section-kicker {
         color: #6a9e36;
         font-size: 11px;
@@ -421,34 +476,9 @@ st.markdown(
         margin-bottom: 18px;
     }
 
-    .stats-section {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 14px;
-        margin: 25px 0 34px 0;
-    }
-
-    .stat-card {
-        background: #ffffff;
-        border: 1px solid #e7ebf0;
-        border-radius: 15px;
-        padding: 22px 20px;
-        box-shadow: 0 4px 14px rgba(20,35,55,0.035);
-    }
-
-    .stat-number {
-        color: #6eaa39;
-        font-size: 28px;
-        font-weight: 900;
-        margin-bottom: 5px;
-    }
-
-    .stat-label {
-        color: #4e5e70;
-        font-size: 12px;
-        line-height: 1.5;
-        font-weight: 700;
-    }
+    /* =====================================================
+       INFO CARDS
+       ===================================================== */
 
     .info-card {
         background: #ffffff;
@@ -478,6 +508,10 @@ st.markdown(
         line-height: 1.75;
     }
 
+    /* =====================================================
+       CLIENT CARDS
+       ===================================================== */
+
     .client-card {
         background: #ffffff;
         border: 1px solid #e7ebf0;
@@ -502,6 +536,10 @@ st.markdown(
         line-height: 1.6;
     }
 
+    /* =====================================================
+       OBJECTIVES
+       ===================================================== */
+
     .objective-card {
         background: #ffffff;
         border-left: 4px solid #85bc4b;
@@ -523,6 +561,10 @@ st.markdown(
         font-size: 12px;
         line-height: 1.7;
     }
+
+    /* =====================================================
+       STAGES
+       ===================================================== */
 
     .stage-card {
         background: #ffffff;
@@ -554,6 +596,10 @@ st.markdown(
         line-height: 1.7;
     }
 
+    /* =====================================================
+       VISION
+       ===================================================== */
+
     .vision-panel {
         background: #142c40;
         color: #ffffff;
@@ -576,6 +622,10 @@ st.markdown(
         font-size: 14px;
         line-height: 1.8;
     }
+
+    /* =====================================================
+       TEAM CARDS
+       ===================================================== */
 
     .team-card {
         background: #ffffff;
@@ -613,6 +663,10 @@ st.markdown(
         min-height: 40px;
     }
 
+    /* =====================================================
+       CTA
+       ===================================================== */
+
     .cta-panel {
         background: #eaf3e2;
         border: 1px solid #d9e9cb;
@@ -636,6 +690,10 @@ st.markdown(
         margin-bottom: 10px;
     }
 
+    /* =====================================================
+       PAGE HEADINGS
+       ===================================================== */
+
     .page-heading {
         color: #1b3043;
         font-size: 30px;
@@ -649,6 +707,10 @@ st.markdown(
         line-height: 1.7;
         margin-bottom: 22px;
     }
+
+    /* =====================================================
+       DASHBOARD
+       ===================================================== */
 
     .dashboard-card {
         background: #ffffff;
@@ -671,6 +733,10 @@ st.markdown(
         line-height: 1.7;
     }
 
+    /* =====================================================
+       FOOTER
+       ===================================================== */
+
     .footer {
         border-top: 1px solid #e2e8ee;
         margin-top: 40px;
@@ -679,6 +745,10 @@ st.markdown(
         font-size: 11px;
         text-align: center;
     }
+
+    /* =====================================================
+       STREAMLIT BUTTONS
+       ===================================================== */
 
     div.stButton > button {
         border-radius: 10px;
@@ -708,14 +778,14 @@ st.markdown(
         color: #ffffff;
     }
 
+    /* =====================================================
+       RESPONSIVE
+       ===================================================== */
+
     @media (max-width: 800px) {
 
         .hero {
             padding: 36px 25px;
-        }
-
-        .stats-section {
-            grid-template-columns: repeat(2, 1fr);
         }
 
         .topbar {
@@ -726,31 +796,19 @@ st.markdown(
             letter-spacing: 1px;
             font-size: 9px;
         }
+
     }
 
     @media (max-width: 480px) {
 
-        .stats-section {
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-        }
-
-        .stat-card {
-            padding: 16px 12px;
-        }
-
-        .stat-number {
-            font-size: 22px;
-        }
-
         .hero {
             padding: 30px 20px;
         }
+
     }
 
     </style>
-    """,
-    unsafe_allow_html=True,
+    """
 )
 
 
@@ -758,10 +816,12 @@ st.markdown(
 # TOP NAVIGATION
 # =========================================================
 
-st.markdown(
+render_html(
     """
     <div class="topbar">
+
         <div>
+
             <div class="logo-text">
                 ADVANSYS <span class="logo-green">ESC</span>
             </div>
@@ -769,14 +829,15 @@ st.markdown(
             <div class="academy-name">
                 CONTROLS TRAINING ACADEMY
             </div>
+
         </div>
 
         <div class="topbar-tag">
             ENGINEERING LEARNING PLATFORM
         </div>
+
     </div>
-    """,
-    unsafe_allow_html=True,
+    """
 )
 
 
@@ -787,41 +848,41 @@ with nav1:
 
     if st.button(
         "⌂  Home",
-        use_container_width=True
+        use_container_width=True,
+        key="nav_home",
     ):
 
         go_to("home")
-        st.rerun()
 
 
 with nav2:
 
     if st.button(
         "▦  Teams",
-        use_container_width=True
+        use_container_width=True,
+        key="nav_teams",
     ):
 
         if st.session_state.logged_in:
             go_to("teams")
+
         else:
             go_to("login")
-
-        st.rerun()
 
 
 with nav3:
 
     if st.button(
         "▤  Dashboard",
-        use_container_width=True
+        use_container_width=True,
+        key="nav_dashboard",
     ):
 
         if st.session_state.logged_in:
             go_to("dashboard")
+
         else:
             go_to("login")
-
-        st.rerun()
 
 
 st.markdown(
@@ -834,9 +895,9 @@ st.markdown(
 # HOME PAGE
 # =========================================================
 
-if st.session_state.page == "home":
+if current_page == "home":
 
-    st.html(
+    render_html(
         """
         <div class="hero">
 
@@ -873,7 +934,7 @@ if st.session_state.page == "home":
     )
 
 
-    st.html(
+    render_html(
         """
         <div class="content-section">
 
@@ -900,7 +961,7 @@ if st.session_state.page == "home":
     )
 
 
-    st.html(
+    render_html(
         """
         <div class="content-section">
 
@@ -926,18 +987,22 @@ if st.session_state.page == "home":
 
 
     clients = [
+
         (
             "Dematic",
             "Warehouse automation and material handling solutions."
         ),
+
         (
             "Amazon",
             "Automation systems supporting warehouse operations."
         ),
+
         (
             "Daifuku",
             "Material handling and automated logistics solutions."
         ),
+
     ]
 
 
@@ -948,7 +1013,7 @@ if st.session_state.page == "home":
 
         with col:
 
-            st.html(
+            render_html(
                 f"""
                 <div class="client-card">
 
@@ -965,7 +1030,7 @@ if st.session_state.page == "home":
             )
 
 
-    st.html(
+    render_html(
         """
         <div class="content-section">
 
@@ -1021,7 +1086,7 @@ if st.session_state.page == "home":
 
         with col:
 
-            st.html(
+            render_html(
                 f"""
                 <div class="info-card">
 
@@ -1042,7 +1107,7 @@ if st.session_state.page == "home":
             )
 
 
-    st.html(
+    render_html(
         """
         <div class="content-section">
 
@@ -1106,7 +1171,7 @@ if st.session_state.page == "home":
 
         with obj_cols[i % 2]:
 
-            st.html(
+            render_html(
                 f"""
                 <div class="objective-card">
 
@@ -1123,7 +1188,7 @@ if st.session_state.page == "home":
             )
 
 
-    st.html(
+    render_html(
         """
         <div class="content-section">
 
@@ -1185,7 +1250,7 @@ if st.session_state.page == "home":
 
         with col:
 
-            st.html(
+            render_html(
                 f"""
                 <div class="stage-card">
 
@@ -1206,7 +1271,7 @@ if st.session_state.page == "home":
             )
 
 
-    st.html(
+    render_html(
         """
         <div class="content-section">
 
@@ -1277,7 +1342,7 @@ if st.session_state.page == "home":
 
         with resource_cols[i % 3]:
 
-            st.html(
+            render_html(
                 f"""
                 <div class="info-card">
 
@@ -1299,10 +1364,10 @@ if st.session_state.page == "home":
 
 
     # =====================================================
-    # LOGIN / REGISTER
+    # ACCESS
     # =====================================================
 
-    st.html(
+    render_html(
         """
         <div class="content-section">
 
@@ -1337,7 +1402,6 @@ if st.session_state.page == "home":
         ):
 
             go_to("login")
-            st.rerun()
 
 
     with auth_cols[1]:
@@ -1349,10 +1413,9 @@ if st.session_state.page == "home":
         ):
 
             go_to("register")
-            st.rerun()
 
 
-    st.html(
+    render_html(
         """
         <div class="vision-panel">
 
@@ -1383,7 +1446,7 @@ if st.session_state.page == "home":
     )
 
 
-    st.html(
+    render_html(
         """
         <div class="cta-panel">
 
@@ -1405,9 +1468,9 @@ if st.session_state.page == "home":
 # REGISTER PAGE
 # =========================================================
 
-elif st.session_state.page == "register":
+elif current_page == "register":
 
-    st.markdown(
+    render_html(
         """
         <div class="section-kicker">
             CREATE ACCOUNT
@@ -1420,8 +1483,7 @@ elif st.session_state.page == "register":
         <div class="page-subheading">
             Create your Advansys ESC account using your company email address.
         </div>
-        """,
-        unsafe_allow_html=True,
+        """
     )
 
 
@@ -1455,6 +1517,7 @@ elif st.session_state.page == "register":
                 "Create Account",
                 type="primary",
                 use_container_width=True,
+                key="register_submit",
             ):
 
                 email = email.strip().lower()
@@ -1483,13 +1546,10 @@ elif st.session_state.page == "register":
 
                 else:
 
-                    if register_user(email, password):
-
-                        st.success(
-                            "Registration successful! Please log in."
-                        )
-
-                        st.rerun()
+                    register_user(
+                        email,
+                        password
+                    )
 
 
     if st.button(
@@ -1499,16 +1559,15 @@ elif st.session_state.page == "register":
     ):
 
         go_to("home")
-        st.rerun()
 
 
 # =========================================================
 # LOGIN PAGE
 # =========================================================
 
-elif st.session_state.page == "login":
+elif current_page == "login":
 
-    st.markdown(
+    render_html(
         """
         <div class="section-kicker">
             ACADEMY ACCESS
@@ -1521,8 +1580,7 @@ elif st.session_state.page == "login":
         <div class="page-subheading">
             Log in using your Advansys ESC company account.
         </div>
-        """,
-        unsafe_allow_html=True,
+        """
     )
 
 
@@ -1550,19 +1608,20 @@ elif st.session_state.page == "login":
                 "Log In",
                 type="primary",
                 use_container_width=True,
+                key="login_submit",
             ):
 
                 email = email.strip().lower()
 
 
-                if login_user(email, password):
+                if login_user(
+                    email,
+                    password
+                ):
 
                     st.success(
                         "Login successful!"
                     )
-
-                    st.rerun()
-
 
                 else:
 
@@ -1590,7 +1649,6 @@ elif st.session_state.page == "login":
         ):
 
             go_to("register")
-            st.rerun()
 
 
     with login_buttons[1]:
@@ -1602,16 +1660,20 @@ elif st.session_state.page == "login":
         ):
 
             go_to("home")
-            st.rerun()
 
 
 # =========================================================
 # CHOOSE TEAM PAGE
 # =========================================================
 
-elif st.session_state.page == "choose_team":
+elif current_page == "choose_team":
 
-    st.markdown(
+    if not st.session_state.logged_in:
+
+        go_to("login")
+
+
+    render_html(
         """
         <div class="section-kicker">
             ACADEMY ACCESS
@@ -1624,8 +1686,7 @@ elif st.session_state.page == "choose_team":
         <div class="page-subheading">
             Select your engineering team to access the relevant learning dashboard.
         </div>
-        """,
-        unsafe_allow_html=True,
+        """
     )
 
 
@@ -1639,11 +1700,13 @@ elif st.session_state.page == "choose_team":
     team_cols = st.columns(2)
 
 
-    for i, (team_code, team) in enumerate(teams.items()):
+    for i, (team_code, team) in enumerate(
+        teams.items()
+    ):
 
         with team_cols[i % 2]:
 
-            st.html(
+            render_html(
                 f"""
                 <div class="team-card">
 
@@ -1676,22 +1739,20 @@ elif st.session_state.page == "choose_team":
             ):
 
                 select_team(team_code)
-                st.rerun()
 
 
 # =========================================================
 # TEAMS PAGE
 # =========================================================
 
-elif st.session_state.page == "teams":
+elif current_page == "teams":
 
     if not st.session_state.logged_in:
 
         go_to("login")
-        st.rerun()
 
 
-    st.markdown(
+    render_html(
         """
         <div class="section-kicker">
             OUR ENGINEERING TEAMS
@@ -1705,19 +1766,26 @@ elif st.session_state.page == "teams":
             Select a team to explore its learning dashboard and
             available training resources.
         </div>
-        """,
-        unsafe_allow_html=True,
+        """
     )
 
 
     team_cols = st.columns(2)
 
 
-    for i, (team_code, team) in enumerate(teams.items()):
+    for i, (team_code, team) in enumerate(
+        teams.items()
+    ):
 
         with team_cols[i % 2]:
 
-            st.html(
+            topics_html = "<br>".join(
+                "• " + topic
+                for topic in team["topics"]
+            )
+
+
+            render_html(
                 f"""
                 <div class="team-card">
 
@@ -1743,10 +1811,7 @@ elif st.session_state.page == "teams":
 
                         <b>Learning topics:</b><br>
 
-                        {"<br>".join(
-                            "• " + topic
-                            for topic in team["topics"]
-                        )}
+                        {topics_html}
 
                     </div>
 
@@ -1763,26 +1828,25 @@ elif st.session_state.page == "teams":
             ):
 
                 select_team(team_code)
-                st.rerun()
 
 
 # =========================================================
 # DASHBOARD PAGE
 # =========================================================
 
-elif st.session_state.page == "dashboard":
+elif current_page == "dashboard":
 
     if not st.session_state.logged_in:
 
         go_to("login")
-        st.rerun()
 
 
     team_code = st.session_state.selected_team
+
     team = teams[team_code]
 
 
-    st.markdown(
+    render_html(
         f"""
         <div class="section-kicker">
             TEAM LEARNING SPACE
@@ -1795,8 +1859,7 @@ elif st.session_state.page == "dashboard":
         <div class="page-subheading">
             {team["description"]}
         </div>
-        """,
-        unsafe_allow_html=True,
+        """
     )
 
 
@@ -1806,9 +1869,13 @@ elif st.session_state.page == "dashboard":
     with top_cols[0]:
 
         st.markdown(
-            f"**Logged in as:** {st.session_state.current_user}  \n"
-            f"**Team:** {team['full_name']}  \n"
-            f"**Learning path:** General controls engineering"
+            f"""
+            **Logged in as:** {st.session_state.current_user}
+
+            **Team:** {team['full_name']}
+
+            **Learning path:** General controls engineering
+            """
         )
 
 
@@ -1817,10 +1884,10 @@ elif st.session_state.page == "dashboard":
         if st.button(
             "← Back to Teams",
             use_container_width=True,
+            key="dashboard_back",
         ):
 
             go_to("teams")
-            st.rerun()
 
 
     st.divider()
@@ -1874,7 +1941,7 @@ elif st.session_state.page == "dashboard":
 
 
     # =====================================================
-    # DOCUMENTS TAB
+    # DOCUMENTS
     # =====================================================
 
     with tab_docs:
@@ -1919,7 +1986,6 @@ elif st.session_state.page == "dashboard":
                             "Completed"
                         )
 
-
                     else:
 
                         if st.button(
@@ -1928,15 +1994,17 @@ elif st.session_state.page == "dashboard":
                             use_container_width=True,
                         ):
 
-                            st.session_state.completed_modules.append(
-                                module["title"]
-                            )
+                            if module["title"] not in st.session_state.completed_modules:
+
+                                st.session_state.completed_modules.append(
+                                    module["title"]
+                                )
 
                             st.rerun()
 
 
     # =====================================================
-    # VIDEOS TAB
+    # VIDEOS
     # =====================================================
 
     with tab_videos:
@@ -1995,7 +2063,7 @@ elif st.session_state.page == "dashboard":
 
 
     # =====================================================
-    # QUIZZES TAB
+    # QUIZZES
     # =====================================================
 
     with tab_quizzes:
@@ -2026,6 +2094,7 @@ elif st.session_state.page == "dashboard":
         if st.button(
             "Submit Answer",
             type="primary",
+            key=f"quiz_submit_{team_code}",
         ):
 
             if answer is None:
@@ -2068,7 +2137,7 @@ elif st.session_state.page == "dashboard":
 
 
     # =====================================================
-    # PROGRESS TAB
+    # PROGRESS
     # =====================================================
 
     with tab_progress:
@@ -2119,7 +2188,7 @@ elif st.session_state.page == "dashboard":
 # FOOTER
 # =========================================================
 
-st.markdown(
+render_html(
     """
     <div class="footer">
 
@@ -2128,6 +2197,5 @@ st.markdown(
         Learn. Explore. Engineer.
 
     </div>
-    """,
-    unsafe_allow_html=True,
+    """
 )
