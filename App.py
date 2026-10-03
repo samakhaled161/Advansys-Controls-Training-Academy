@@ -21,10 +21,31 @@ supabase = create_client(
 )
 
 # =========================================================
-# SESSION STATE
+# SESSION STATE + BROWSER NAVIGATION
 # =========================================================
+
+# Read the page from the browser URL.
+# Example:
+# ?page=home
+# ?page=login
+# ?page=register
+# ?page=dashboard
+
+url_page = st.query_params.get("page")
+
 if "page" not in st.session_state:
-    st.session_state.page = "home"
+
+    if url_page:
+        st.session_state.page = url_page
+    else:
+        st.session_state.page = "home"
+
+else:
+
+    # Sync Streamlit with browser Back / Forward navigation.
+    if url_page and url_page != st.session_state.page:
+        st.session_state.page = url_page
+
 
 if "selected_team" not in st.session_state:
     st.session_state.selected_team = "PF"
@@ -43,12 +64,18 @@ if "current_user" not in st.session_state:
 
 
 def go_to(page):
+    """
+    Navigate to a page and update the browser URL.
+    This allows browser Back / Forward navigation.
+    """
+
     st.session_state.page = page
+    st.query_params["page"] = page
 
 
 def select_team(team):
     st.session_state.selected_team = team
-    st.session_state.page = "dashboard"
+    go_to("dashboard")
 
 
 def is_valid_company_email(email):
@@ -69,11 +96,10 @@ def register_user(email, password):
             }
         )
 
-        # Supabase returns a user when registration succeeds.
         if response.user is not None:
 
             st.session_state.current_user = email
-            st.session_state.page = "login"
+            go_to("login")
 
             return True
 
@@ -116,7 +142,7 @@ def login_user(email, password):
 
             st.session_state.logged_in = True
             st.session_state.current_user = email
-            st.session_state.page = "choose_team"
+            go_to("choose_team")
 
             return True
 
@@ -1054,7 +1080,7 @@ if st.session_state.page == "home":
             use_container_width=True,
             type="primary",
         ):
-            st.session_state.page = "login"
+            go_to("login")
             st.rerun()
 
     with auth_cols[1]:
@@ -1063,7 +1089,7 @@ if st.session_state.page == "home":
             key="home_register",
             use_container_width=True,
         ):
-            st.session_state.page = "register"
+            go_to("register")
             st.rerun()
 
     st.html(
@@ -1176,7 +1202,7 @@ elif st.session_state.page == "register":
         use_container_width=True,
         key="register_back",
     ):
-        st.session_state.page = "home"
+        go_to("home")
         st.rerun()
 
 
@@ -1244,7 +1270,7 @@ elif st.session_state.page == "login":
             use_container_width=True,
             key="login_register",
         ):
-            st.session_state.page = "register"
+            go_to("register")
             st.rerun()
 
     with login_buttons[1]:
@@ -1253,7 +1279,7 @@ elif st.session_state.page == "login":
             use_container_width=True,
             key="login_back",
         ):
-            st.session_state.page = "home"
+            go_to("home")
             st.rerun()
 
 
@@ -1314,7 +1340,7 @@ elif st.session_state.page == "choose_team":
 elif st.session_state.page == "teams":
 
     if not st.session_state.logged_in:
-        st.session_state.page = "login"
+        go_to("login")
         st.rerun()
 
     st.markdown(
@@ -1367,7 +1393,7 @@ elif st.session_state.page == "teams":
 elif st.session_state.page == "dashboard":
 
     if not st.session_state.logged_in:
-        st.session_state.page = "login"
+        go_to("login")
         st.rerun()
 
     team_code = st.session_state.selected_team
