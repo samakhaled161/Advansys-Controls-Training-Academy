@@ -1,5 +1,6 @@
 import streamlit as st
 import re
+from supabase import create_client
 
 # =========================================================
 # PAGE CONFIG
@@ -9,6 +10,14 @@ st.set_page_config(
     page_icon="⚙️",
     layout="wide",
     initial_sidebar_state="collapsed",
+)
+
+# =========================================================
+# SUPABASE
+# =========================================================
+supabase = create_client(
+    st.secrets["SUPABASE_URL"],
+    st.secrets["SUPABASE_KEY"]
 )
 
 # =========================================================
@@ -25,9 +34,6 @@ if "completed_modules" not in st.session_state:
 
 if "quiz_score" not in st.session_state:
     st.session_state.quiz_score = None
-
-if "users" not in st.session_state:
-    st.session_state.users = {}
 
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
@@ -50,21 +56,75 @@ def is_valid_company_email(email):
     return re.fullmatch(pattern, email) is not None
 
 
+# =========================================================
+# AUTH FUNCTIONS
+# =========================================================
 def register_user(email, password):
-    st.session_state.users[email] = password
-    st.session_state.current_user = email
-    st.session_state.page = "login"
+    try:
+
+        response = supabase.auth.sign_up(
+            {
+                "email": email,
+                "password": password,
+            }
+        )
+
+        # Supabase returns a user when registration succeeds.
+        if response.user is not None:
+
+            st.session_state.current_user = email
+            st.session_state.page = "login"
+
+            return True
+
+        return False
+
+    except Exception as e:
+
+        error_message = str(e).lower()
+
+        if (
+            "already registered" in error_message
+            or "already exists" in error_message
+            or "user already registered" in error_message
+        ):
+
+            st.error(
+                "This account is already registered."
+            )
+
+        else:
+
+            st.error(
+                "Registration failed. Please try again."
+            )
+
+        return False
 
 
 def login_user(email, password):
-    if email in st.session_state.users:
-        if st.session_state.users[email] == password:
+    try:
+
+        response = supabase.auth.sign_in_with_password(
+            {
+                "email": email,
+                "password": password,
+            }
+        )
+
+        if response.user is not None:
+
             st.session_state.logged_in = True
             st.session_state.current_user = email
             st.session_state.page = "choose_team"
+
             return True
 
-    return False
+        return False
+
+    except Exception:
+
+        return False
 
 
 # =========================================================
@@ -1101,19 +1161,15 @@ elif st.session_state.page == "register":
 
                     st.error("Passwords do not match.")
 
-                elif email in st.session_state.users:
-
-                    st.error("This account is already registered.")
-
                 else:
 
-                    register_user(email, password)
+                    if register_user(email, password):
 
-                    st.success(
-                        "Registration successful! Please log in."
-                    )
+                        st.success(
+                            "Registration successful! Please log in."
+                        )
 
-                    st.rerun()
+                        st.rerun()
 
     if st.button(
         "← Back to Home",
