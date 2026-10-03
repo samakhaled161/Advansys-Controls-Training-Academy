@@ -2,11 +2,9 @@ import streamlit as st
 import re
 from supabase import create_client
 
-
 # =========================================================
 # PAGE CONFIG
 # =========================================================
-
 st.set_page_config(
     page_title="Advansys ESC | Controls Training Academy",
     page_icon="⚙️",
@@ -14,34 +12,19 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-
 # =========================================================
 # SUPABASE
 # =========================================================
-
 supabase = create_client(
     st.secrets["SUPABASE_URL"],
     st.secrets["SUPABASE_KEY"]
 )
 
-
-# =========================================================
-# VALID PAGES
-# =========================================================
-
-VALID_PAGES = {
-    "home",
-    "register",
-    "login",
-    "choose_team",
-    "teams",
-    "dashboard",
-}
-
-
 # =========================================================
 # SESSION STATE
 # =========================================================
+if "page" not in st.session_state:
+    st.session_state.page = "home"
 
 if "selected_team" not in st.session_state:
     st.session_state.selected_team = "PF"
@@ -59,54 +42,24 @@ if "current_user" not in st.session_state:
     st.session_state.current_user = None
 
 
-# =========================================================
-# URL ROUTING
-# =========================================================
-
-def get_page_from_url():
-
-    page = st.query_params.get("page", "home")
-
-    if page not in VALID_PAGES:
-        page = "home"
-
-    return page
-
-
-current_page = get_page_from_url()
-
-
 def go_to(page):
-
-    if page not in VALID_PAGES:
-        page = "home"
-
-    st.query_params["page"] = page
+    st.session_state.page = page
 
 
 def select_team(team):
-
     st.session_state.selected_team = team
-    go_to("dashboard")
+    st.session_state.page = "dashboard"
 
-
-# =========================================================
-# COMPANY EMAIL VALIDATION
-# =========================================================
 
 def is_valid_company_email(email):
-
     pattern = r"^[A-Za-z]+\.[A-Za-z]+@advansys-esc\.com$"
-
     return re.fullmatch(pattern, email) is not None
 
 
 # =========================================================
 # AUTH FUNCTIONS
 # =========================================================
-
 def register_user(email, password):
-
     try:
 
         response = supabase.auth.sign_up(
@@ -116,11 +69,11 @@ def register_user(email, password):
             }
         )
 
+        # Supabase returns a user when registration succeeds.
         if response.user is not None:
 
             st.session_state.current_user = email
-
-            go_to("login")
+            st.session_state.page = "login"
 
             return True
 
@@ -150,7 +103,6 @@ def register_user(email, password):
 
 
 def login_user(email, password):
-
     try:
 
         response = supabase.auth.sign_in_with_password(
@@ -164,8 +116,7 @@ def login_user(email, password):
 
             st.session_state.logged_in = True
             st.session_state.current_user = email
-
-            go_to("choose_team")
+            st.session_state.page = "choose_team"
 
             return True
 
@@ -179,9 +130,7 @@ def login_user(email, password):
 # =========================================================
 # TEAM DATA
 # =========================================================
-
 teams = {
-
     "PF": {
         "name": "PF Team",
         "full_name": "Pallet Flow",
@@ -194,7 +143,6 @@ teams = {
             "Controls and field devices",
         ],
     },
-
     "FLEX": {
         "name": "FLEX Team",
         "full_name": "Flexible Automation",
@@ -207,7 +155,6 @@ teams = {
             "System integration",
         ],
     },
-
     "EMEA": {
         "name": "EMEA Team",
         "full_name": "Europe, Middle East & Africa",
@@ -220,7 +167,6 @@ teams = {
             "Testing and commissioning",
         ],
     },
-
     "AMZ": {
         "name": "AMZ Team",
         "full_name": "Amazon Projects",
@@ -228,59 +174,49 @@ teams = {
         "icon": "🏭",
         "topics": [
             "Warehouse automation",
-            "Conveyor and sorting",
+            "Conveyor and sorting systems",
             "Electrical design",
             "Controls integration",
         ],
     },
 }
 
-
 # =========================================================
 # TRAINING CONTENT
 # =========================================================
-
 modules = [
-
     {
         "title": "Company Introduction",
         "category": "Getting Started",
         "description": "Learn about Advansys ESC, the academy, and the engineering teams.",
         "duration": "15 min",
     },
-
     {
         "title": "Warehouse Automation Fundamentals",
         "category": "Fundamentals",
         "description": "Understand material handling, conveyor systems, and sorting solutions.",
         "duration": "30 min",
     },
-
     {
         "title": "Hardware & Installation",
         "category": "Hardware Design",
         "description": "Explore electrical drawings, power distribution, and device connections.",
         "duration": "45 min",
     },
-
     {
         "title": "Controls & PLC Fundamentals",
         "category": "Controls",
         "description": "Get introduced to PLCs, control logic, and system interfaces.",
         "duration": "40 min",
     },
-
 ]
-
 
 # =========================================================
 # CUSTOM CSS
 # =========================================================
-
-st.html(
+st.markdown(
     """
     <style>
-
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
     html, body, [class*="css"] {
@@ -434,6 +370,35 @@ st.html(
     .content-section {
         margin-top: 34px;
         margin-bottom: 18px;
+    }
+
+    .stats-section {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 14px;
+        margin: 25px 0 34px 0;
+    }
+
+    .stat-card {
+        background: #ffffff;
+        border: 1px solid #e7ebf0;
+        border-radius: 15px;
+        padding: 22px 20px;
+        box-shadow: 0 4px 14px rgba(20,35,55,0.035);
+    }
+
+    .stat-number {
+        color: #6eaa39;
+        font-size: 28px;
+        font-weight: 900;
+        margin-bottom: 5px;
+    }
+
+    .stat-label {
+        color: #4e5e70;
+        font-size: 12px;
+        line-height: 1.5;
+        font-weight: 700;
     }
 
     .info-card {
@@ -695,9 +660,12 @@ st.html(
     }
 
     @media (max-width: 800px) {
-
         .hero {
             padding: 36px 25px;
+        }
+
+        .stats-section {
+            grid-template-columns: repeat(2, 1fr);
         }
 
         .topbar {
@@ -708,155 +676,102 @@ st.html(
             letter-spacing: 1px;
             font-size: 9px;
         }
-
     }
 
     @media (max-width: 480px) {
+        .stats-section {
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .stat-card {
+            padding: 16px 12px;
+        }
+
+        .stat-number {
+            font-size: 22px;
+        }
 
         .hero {
             padding: 30px 20px;
         }
-
     }
-
     </style>
-    """
+    """,
+    unsafe_allow_html=True,
 )
-
 
 # =========================================================
 # TOP NAVIGATION
 # =========================================================
-
-st.html(
+st.markdown(
     """
     <div class="topbar">
-
         <div>
-
-            <div class="logo-text">
-                ADVANSYS <span class="logo-green">ESC</span>
-            </div>
-
-            <div class="academy-name">
-                CONTROLS TRAINING ACADEMY
-            </div>
-
+            <div class="logo-text">ADVANSYS <span class="logo-green">ESC</span></div>
+            <div class="academy-name">CONTROLS TRAINING ACADEMY</div>
         </div>
-
-        <div class="topbar-tag">
-            ENGINEERING LEARNING PLATFORM
-        </div>
-
+        <div class="topbar-tag">ENGINEERING LEARNING PLATFORM</div>
     </div>
-    """
+    """,
+    unsafe_allow_html=True,
 )
-
 
 nav1, nav2, nav3, spacer = st.columns([1, 1, 1, 5])
 
-
 with nav1:
-
-    if st.button(
-        "⌂  Home",
-        use_container_width=True,
-        key="nav_home",
-    ):
-
+    if st.button("⌂  Home", use_container_width=True):
         go_to("home")
-
+        st.rerun()
 
 with nav2:
-
-    if st.button(
-        "▦  Teams",
-        use_container_width=True,
-        key="nav_teams",
-    ):
-
+    if st.button("▦  Teams", use_container_width=True):
         if st.session_state.logged_in:
             go_to("teams")
-
         else:
             go_to("login")
-
+        st.rerun()
 
 with nav3:
-
-    if st.button(
-        "▤  Dashboard",
-        use_container_width=True,
-        key="nav_dashboard",
-    ):
-
+    if st.button("▤  Dashboard", use_container_width=True):
         if st.session_state.logged_in:
             go_to("dashboard")
-
         else:
             go_to("login")
+        st.rerun()
 
-
-st.html(
-    "<div style='height:8px'></div>"
-)
-
+st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
 
 # =========================================================
 # HOME PAGE
 # =========================================================
-
-if current_page == "home":
+if st.session_state.page == "home":
 
     st.html(
         """
         <div class="hero">
-
-            <div class="hero-small">
-                ADVANSYS ESC
-            </div>
-
+            <div class="hero-small">ADVANSYS ESC</div>
             <div class="hero-title">
-                CONTROLS<br>
-                <span>TRAINING ACADEMY</span>
+                CONTROLS<br><span>TRAINING ACADEMY</span>
             </div>
-
             <div class="hero-description">
                 Building engineering knowledge for the next generation of
                 warehouse automation professionals. Learn, explore, and
                 develop your technical skills through a centralized
                 learning experience.
             </div>
-
-            <span class="hero-pill">
-                Warehouse Automation
-            </span>
-
-            <span class="hero-pill">
-                Controls Engineering
-            </span>
-
-            <span class="hero-pill">
-                Hardware & Installation
-            </span>
-
+            <span class="hero-pill">Warehouse Automation</span>
+            <span class="hero-pill">Controls Engineering</span>
+            <span class="hero-pill">Hardware & Installation</span>
         </div>
         """
     )
 
-
     st.html(
         """
         <div class="content-section">
-
-            <div class="section-kicker">
-                ABOUT THE ACADEMY
-            </div>
-
-            <div class="section-title">
-                Engineering the Future of Automation
-            </div>
-
+            <div class="section-kicker">ABOUT THE ACADEMY</div>
+            <div class="section-title">Engineering the Future of Automation</div>
             <div class="section-description">
                 Advansys ESC delivers warehouse automation solutions that
                 support the movement, handling, and management of materials
@@ -866,413 +781,252 @@ if current_page == "home":
                 a stronger understanding of automation systems and project
                 workflows.
             </div>
-
         </div>
         """
     )
 
-
     st.html(
         """
         <div class="content-section">
-
-            <div class="section-kicker">
-                OUR CLIENTS
-            </div>
-
-            <div class="section-title">
-                Supporting Global Automation Projects
-            </div>
-
+            <div class="section-kicker">OUR CLIENTS</div>
+            <div class="section-title">Supporting Global Automation Projects</div>
             <div class="section-description">
                 Advansys ESC works on warehouse automation solutions for
                 international companies and projects, including:
             </div>
-
         </div>
         """
     )
 
-
     client_cols = st.columns(3)
 
-
     clients = [
-
-        (
-            "Dematic",
-            "Warehouse automation and material handling solutions."
-        ),
-
-        (
-            "Amazon",
-            "Automation systems supporting warehouse operations."
-        ),
-
-        (
-            "Daifuku",
-            "Material handling and automated logistics solutions."
-        ),
-
+        ("Dematic", "Warehouse automation and material handling solutions."),
+        ("Amazon", "Automation systems supporting warehouse operations."),
+        ("Daifuku", "Material handling and automated logistics solutions."),
     ]
 
-
-    for col, (client_name, client_desc) in zip(
-        client_cols,
-        clients
-    ):
-
+    for col, (client_name, client_desc) in zip(client_cols, clients):
         with col:
-
             st.html(
                 f"""
                 <div class="client-card">
-
-                    <div class="client-name">
-                        {client_name}
-                    </div>
-
-                    <div class="client-caption">
-                        {client_desc}
-                    </div>
-
+                    <div class="client-name">{client_name}</div>
+                    <div class="client-caption">{client_desc}</div>
                 </div>
                 """
             )
 
-
     st.html(
         """
         <div class="content-section">
-
-            <div class="section-kicker">
-                WHAT WE WORK ON
-            </div>
-
-            <div class="section-title">
-                Warehouse Automation Solutions
-            </div>
-
+            <div class="section-kicker">WHAT WE WORK ON</div>
+            <div class="section-title">Warehouse Automation Solutions</div>
             <div class="section-description">
                 Automation projects bring together electrical hardware,
                 control systems, field devices, and engineering
                 documentation to help warehouse operations run as intended.
             </div>
-
         </div>
         """
     )
 
-
     solution_cols = st.columns(3)
 
-
     solutions = [
-
         (
             "📦",
             "Conveyor Systems",
             "Material transportation systems, conveyor layouts, and the devices used to move products through a facility.",
         ),
-
         (
             "🔀",
             "Sorting & Routing",
             "Automated sorting and routing concepts that help direct materials through different process areas.",
         ),
-
         (
             "⚙️",
             "Controls & Integration",
             "Control hardware, field devices, electrical drawings, PLC interfaces, and integration between systems.",
         ),
-
     ]
 
-
-    for col, (icon, title, description) in zip(
-        solution_cols,
-        solutions
-    ):
-
+    for col, (icon, title, description) in zip(solution_cols, solutions):
         with col:
-
             st.html(
                 f"""
                 <div class="info-card">
-
-                    <div class="info-icon">
-                        {icon}
-                    </div>
-
-                    <div class="info-title">
-                        {title}
-                    </div>
-
-                    <div class="info-description">
-                        {description}
-                    </div>
-
+                    <div class="info-icon">{icon}</div>
+                    <div class="info-title">{title}</div>
+                    <div class="info-description">{description}</div>
                 </div>
                 """
             )
 
-
     st.html(
         """
         <div class="content-section">
-
-            <div class="section-kicker">
-                ACADEMY OBJECTIVES
-            </div>
-
-            <div class="section-title">
-                Learning with a Clear Purpose
-            </div>
-
+            <div class="section-kicker">ACADEMY OBJECTIVES</div>
+            <div class="section-title">Learning with a Clear Purpose</div>
             <div class="section-description">
                 The academy aims to make technical knowledge easier to access
                 and to provide a consistent learning path across teams.
             </div>
-
         </div>
         """
     )
 
-
     objectives = [
-
         (
             "Accelerate Onboarding",
             "Help new team members become familiar with engineering tools, documentation, and project workflows.",
         ),
-
         (
             "Standardize Learning",
             "Provide shared learning materials and technical references that support consistent understanding.",
         ),
-
         (
             "Centralize Resources",
             "Bring documents, videos, training modules, and assessments together in one place.",
         ),
-
         (
             "Support Knowledge Retention",
             "Make it easier for engineers to revisit important concepts and technical information.",
         ),
-
         (
             "Track Learning Progress",
             "Provide a simple way to follow completed modules and learning activities.",
         ),
-
         (
             "Encourage Development",
             "Support continuous learning and technical growth within engineering teams.",
         ),
-
     ]
-
 
     obj_cols = st.columns(2)
 
-
     for i, (title, description) in enumerate(objectives):
-
         with obj_cols[i % 2]:
-
             st.html(
                 f"""
                 <div class="objective-card">
-
-                    <div class="objective-title">
-                        {title}
-                    </div>
-
-                    <div class="objective-description">
-                        {description}
-                    </div>
-
+                    <div class="objective-title">{title}</div>
+                    <div class="objective-description">{description}</div>
                 </div>
                 """
             )
 
-
     st.html(
         """
         <div class="content-section">
-
-            <div class="section-kicker">
-                LEARNING JOURNEY
-            </div>
-
-            <div class="section-title">
-                From Fundamentals to Project Knowledge
-            </div>
-
+            <div class="section-kicker">LEARNING JOURNEY</div>
+            <div class="section-title">From Fundamentals to Project Knowledge</div>
             <div class="section-description">
                 A structured path that introduces the company and core
                 concepts before moving into technical topics and
                 team-focused learning.
             </div>
-
         </div>
         """
     )
 
-
     stages = [
-
         (
             "01",
             "Company Introduction",
             "Get familiar with Advansys ESC, the academy, and how engineering teams collaborate.",
         ),
-
         (
             "02",
             "Automation Fundamentals",
             "Explore warehouse processes, material handling, conveyors, and sorting concepts.",
         ),
-
         (
             "03",
             "Hardware & Installation",
             "Understand electrical drawings, power distribution, device connections, and installation references.",
         ),
-
         (
             "04",
             "Team Specialization",
             "Continue learning through team-related materials, project references, and technical assessments.",
         ),
-
     ]
-
 
     stage_cols = st.columns(4)
 
-
-    for col, (number, title, description) in zip(
-        stage_cols,
-        stages
-    ):
-
+    for col, (number, title, description) in zip(stage_cols, stages):
         with col:
-
             st.html(
                 f"""
                 <div class="stage-card">
-
-                    <div class="stage-number">
-                        STAGE {number}
-                    </div>
-
-                    <div class="stage-title">
-                        {title}
-                    </div>
-
-                    <div class="stage-description">
-                        {description}
-                    </div>
-
+                    <div class="stage-number">STAGE {number}</div>
+                    <div class="stage-title">{title}</div>
+                    <div class="stage-description">{description}</div>
                 </div>
                 """
             )
 
-
     st.html(
         """
         <div class="content-section">
-
-            <div class="section-kicker">
-                LEARNING RESOURCES
-            </div>
-
-            <div class="section-title">
-                One Place for Technical Learning
-            </div>
-
+            <div class="section-kicker">LEARNING RESOURCES</div>
+            <div class="section-title">One Place for Technical Learning</div>
             <div class="section-description">
                 The platform is structured to host different types of
                 learning resources, making it easier to find and revisit
                 relevant technical material.
             </div>
-
         </div>
         """
     )
 
-
     resource_cols = st.columns(3)
 
-
     resources = [
-
         (
             "📄",
             "Technical Documentation",
             "Engineering references, design documents, standards, and project-related material.",
         ),
-
         (
             "🎥",
             "Training Videos",
             "Visual explanations and demonstrations of technical concepts, tools, and workflows.",
         ),
-
         (
             "🧰",
             "Hardware Design",
             "Learning material related to electrical drawings, components, buses, and field devices.",
         ),
-
         (
             "🖥️",
             "PLC & Controls",
             "Introductory learning about PLC concepts, control logic, and system interfaces.",
         ),
-
         (
             "📝",
             "Assessments",
             "Knowledge checks and quizzes to review concepts covered in the training modules.",
         ),
-
         (
             "📊",
             "Progress Tracking",
             "A simple overview of completed modules and learning progress.",
         ),
-
     ]
 
-
     for i, (icon, title, description) in enumerate(resources):
-
         with resource_cols[i % 3]:
-
             st.html(
                 f"""
                 <div class="info-card">
-
-                    <div class="info-icon">
-                        {icon}
-                    </div>
-
-                    <div class="info-title">
-                        {title}
-                    </div>
-
-                    <div class="info-description">
-                        {description}
-                    </div>
-
+                    <div class="info-icon">{icon}</div>
+                    <div class="info-title">{title}</div>
+                    <div class="info-description">{description}</div>
                 </div>
                 """
             )
-
 
     # =====================================================
     # LOGIN / REGISTER
@@ -1281,95 +1035,65 @@ if current_page == "home":
     st.html(
         """
         <div class="content-section">
-
-            <div class="section-kicker">
-                ACCESS THE ACADEMY
-            </div>
-
-            <div class="section-title">
-                Start Your Learning Journey
-            </div>
-
+            <div class="section-kicker">ACCESS THE ACADEMY</div>
+            <div class="section-title">Start Your Learning Journey</div>
             <div class="section-description">
                 Sign in with your Advansys ESC account or create a new account
                 using your company email address.
             </div>
-
         </div>
         """
     )
 
-
     auth_cols = st.columns(2)
 
-
     with auth_cols[0]:
-
         if st.button(
             "🔐  LOG IN",
             key="home_login",
             use_container_width=True,
             type="primary",
         ):
-
-            go_to("login")
-
+            st.session_state.page = "login"
+            st.rerun()
 
     with auth_cols[1]:
-
         if st.button(
             "📝  REGISTER",
             key="home_register",
             use_container_width=True,
         ):
-
-            go_to("register")
-
+            st.session_state.page = "register"
+            st.rerun()
 
     st.html(
         """
         <div class="vision-panel">
-
-            <div class="vision-title">
-                OUR VISION
-            </div>
-
+            <div class="vision-title">OUR VISION</div>
             <div class="vision-text">
                 To support a culture of continuous learning, technical
                 collaboration, and engineering development that contributes
                 to the delivery of warehouse automation solutions.
             </div>
-
             <br>
-
-            <div class="vision-title">
-                OUR MISSION
-            </div>
-
+            <div class="vision-title">OUR MISSION</div>
             <div class="vision-text">
                 To make technical knowledge more accessible through
                 structured learning resources, shared references, and
                 opportunities for practical development.
             </div>
-
         </div>
         """
     )
 
-
     st.html(
         """
         <div class="cta-panel">
-
-            <div class="cta-title">
-                Learn. Explore. Engineer.
-            </div>
-
+            <div class="cta-title">Learn. Explore. Engineer.</div>
             <div class="cta-description">
                 Start exploring the academy and continue building your
                 technical knowledge, one step at a time.
             </div>
-
         </div>
         """
     )
@@ -1378,28 +1102,20 @@ if current_page == "home":
 # =========================================================
 # REGISTER PAGE
 # =========================================================
+elif st.session_state.page == "register":
 
-elif current_page == "register":
-
-    st.html(
+    st.markdown(
         """
-        <div class="section-kicker">
-            CREATE ACCOUNT
-        </div>
-
-        <div class="page-heading">
-            Register for the Academy
-        </div>
-
+        <div class="section-kicker">CREATE ACCOUNT</div>
+        <div class="page-heading">Register for the Academy</div>
         <div class="page-subheading">
             Create your Advansys ESC account using your company email address.
         </div>
-        """
+        """,
+        unsafe_allow_html=True,
     )
 
-
     register_col = st.columns([1, 2, 1])[1]
-
 
     with register_col:
 
@@ -1423,16 +1139,13 @@ elif current_page == "register":
                 key="register_confirm_password",
             )
 
-
             if st.button(
                 "Create Account",
                 type="primary",
                 use_container_width=True,
-                key="register_submit",
             ):
 
                 email = email.strip().lower()
-
 
                 if not is_valid_company_email(email):
 
@@ -1440,67 +1153,50 @@ elif current_page == "register":
                         "You must use your Advansys ESC company email."
                     )
 
-
                 elif not password:
 
-                    st.warning(
-                        "Please enter a password."
-                    )
-
+                    st.warning("Please enter a password.")
 
                 elif password != confirm_password:
 
-                    st.error(
-                        "Passwords do not match."
-                    )
-
+                    st.error("Passwords do not match.")
 
                 else:
 
-                    if register_user(
-                        email,
-                        password
-                    ):
+                    if register_user(email, password):
 
                         st.success(
                             "Registration successful! Please log in."
                         )
 
+                        st.rerun()
 
     if st.button(
         "← Back to Home",
         use_container_width=True,
         key="register_back",
     ):
-
-        go_to("home")
+        st.session_state.page = "home"
+        st.rerun()
 
 
 # =========================================================
 # LOGIN PAGE
 # =========================================================
+elif st.session_state.page == "login":
 
-elif current_page == "login":
-
-    st.html(
+    st.markdown(
         """
-        <div class="section-kicker">
-            ACADEMY ACCESS
-        </div>
-
-        <div class="page-heading">
-            Welcome Back
-        </div>
-
+        <div class="section-kicker">ACADEMY ACCESS</div>
+        <div class="page-heading">Welcome Back</div>
         <div class="page-subheading">
             Log in using your Advansys ESC company account.
         </div>
-        """
+        """,
+        unsafe_allow_html=True,
     )
 
-
     login_col = st.columns([1, 2, 1])[1]
-
 
     with login_col:
 
@@ -1518,25 +1214,18 @@ elif current_page == "login":
                 key="login_password",
             )
 
-
             if st.button(
                 "Log In",
                 type="primary",
                 use_container_width=True,
-                key="login_submit",
             ):
 
                 email = email.strip().lower()
 
+                if login_user(email, password):
 
-                if login_user(
-                    email,
-                    password
-                ):
-
-                    st.success(
-                        "Login successful!"
-                    )
+                    st.success("Login successful!")
+                    st.rerun()
 
                 else:
 
@@ -1545,64 +1234,44 @@ elif current_page == "login":
                         "Please check your credentials or register first."
                     )
 
-
-    st.markdown(
-        "<br>",
-        unsafe_allow_html=True
-    )
-
+    st.markdown("<br>", unsafe_allow_html=True)
 
     login_buttons = st.columns(2)
 
-
     with login_buttons[0]:
-
         if st.button(
             "Create a New Account",
             use_container_width=True,
             key="login_register",
         ):
-
-            go_to("register")
-
+            st.session_state.page = "register"
+            st.rerun()
 
     with login_buttons[1]:
-
         if st.button(
             "← Back to Home",
             use_container_width=True,
             key="login_back",
         ):
-
-            go_to("home")
+            st.session_state.page = "home"
+            st.rerun()
 
 
 # =========================================================
 # CHOOSE TEAM PAGE
 # =========================================================
+elif st.session_state.page == "choose_team":
 
-elif current_page == "choose_team":
-
-    if not st.session_state.logged_in:
-
-        go_to("login")
-
-    st.html(
+    st.markdown(
         """
-        <div class="section-kicker">
-            ACADEMY ACCESS
-        </div>
-
-        <div class="page-heading">
-            Choose Your Team
-        </div>
-
+        <div class="section-kicker">ACADEMY ACCESS</div>
+        <div class="page-heading">Choose Your Team</div>
         <div class="page-subheading">
             Select your engineering team to access the relevant learning dashboard.
         </div>
-        """
+        """,
+        unsafe_allow_html=True,
     )
-
 
     if st.session_state.current_user:
 
@@ -1610,40 +1279,24 @@ elif current_page == "choose_team":
             f"Logged in as: {st.session_state.current_user}"
         )
 
-
     team_cols = st.columns(2)
 
-
-    for i, (team_code, team) in enumerate(
-        teams.items()
-    ):
+    for i, (team_code, team) in enumerate(teams.items()):
 
         with team_cols[i % 2]:
 
             st.html(
                 f"""
                 <div class="team-card">
-
-                    <div class="team-icon">
-                        {team["icon"]}
-                    </div>
-
-                    <div class="team-title">
-                        {team["name"]}
-                    </div>
-
-                    <div class="team-subtitle">
-                        {team["full_name"]}
-                    </div>
-
+                    <div class="team-icon">{team["icon"]}</div>
+                    <div class="team-title">{team["name"]}</div>
+                    <div class="team-subtitle">{team["full_name"]}</div>
                     <div class="team-description">
                         {team["description"]}
                     </div>
-
                 </div>
                 """
             )
-
 
             if st.button(
                 f"Continue with {team_code}",
@@ -1651,87 +1304,52 @@ elif current_page == "choose_team":
                 use_container_width=True,
                 type="primary",
             ):
-
                 select_team(team_code)
+                st.rerun()
 
 
 # =========================================================
 # TEAMS PAGE
 # =========================================================
-
-elif current_page == "teams":
+elif st.session_state.page == "teams":
 
     if not st.session_state.logged_in:
+        st.session_state.page = "login"
+        st.rerun()
 
-        go_to("login")
-
-    st.html(
+    st.markdown(
         """
-        <div class="section-kicker">
-            OUR ENGINEERING TEAMS
-        </div>
-
-        <div class="page-heading">
-            Choose Your Team
-        </div>
-
+        <div class="section-kicker">OUR ENGINEERING TEAMS</div>
+        <div class="page-heading">Choose Your Team</div>
         <div class="page-subheading">
             Select a team to explore its learning dashboard and
             available training resources.
         </div>
-        """
+        """,
+        unsafe_allow_html=True,
     )
-
 
     team_cols = st.columns(2)
 
-
-    for i, (team_code, team) in enumerate(
-        teams.items()
-    ):
+    for i, (team_code, team) in enumerate(teams.items()):
 
         with team_cols[i % 2]:
-
-            topics_html = "<br>".join(
-                "• " + topic
-                for topic in team["topics"]
-            )
-
 
             st.html(
                 f"""
                 <div class="team-card">
-
-                    <div class="team-icon">
-                        {team["icon"]}
-                    </div>
-
-                    <div class="team-title">
-                        {team["name"]}
-                    </div>
-
-                    <div class="team-subtitle">
-                        {team["full_name"]}
-                    </div>
-
-                    <div class="team-description">
-                        {team["description"]}
-                    </div>
-
+                    <div class="team-icon">{team["icon"]}</div>
+                    <div class="team-title">{team["name"]}</div>
+                    <div class="team-subtitle">{team["full_name"]}</div>
+                    <div class="team-description">{team["description"]}</div>
                     <br>
-
                     <div class="info-description">
-
                         <b>Learning topics:</b><br>
-
-                        {topics_html}
-
+                        {"<br>".join("• " + topic for topic in team["topics"])}
                     </div>
-
                 </div>
                 """
             )
-
 
             if st.button(
                 f"Open {team_code} Dashboard",
@@ -1739,45 +1357,34 @@ elif current_page == "teams":
                 use_container_width=True,
                 type="primary",
             ):
-
                 select_team(team_code)
+                st.rerun()
 
 
 # =========================================================
 # DASHBOARD PAGE
 # =========================================================
-
-elif current_page == "dashboard":
+elif st.session_state.page == "dashboard":
 
     if not st.session_state.logged_in:
-
-        go_to("login")
-
+        st.session_state.page = "login"
+        st.rerun()
 
     team_code = st.session_state.selected_team
-
     team = teams[team_code]
 
-
-    st.html(
+    st.markdown(
         f"""
-        <div class="section-kicker">
-            TEAM LEARNING SPACE
-        </div>
-
-        <div class="page-heading">
-            {team["icon"]} {team["name"]} Dashboard
-        </div>
-
+        <div class="section-kicker">TEAM LEARNING SPACE</div>
+        <div class="page-heading">{team["icon"]} {team["name"]} Dashboard</div>
         <div class="page-subheading">
             {team["description"]}
         </div>
-        """
+        """,
+        unsafe_allow_html=True,
     )
 
-
     top_cols = st.columns([3, 1])
-
 
     with top_cols[0]:
 
@@ -1787,57 +1394,39 @@ elif current_page == "dashboard":
             f"**Learning path:** General controls engineering"
         )
 
-
     with top_cols[1]:
 
         if st.button(
             "← Back to Teams",
             use_container_width=True,
-            key="dashboard_back",
         ):
-
             go_to("teams")
-
+            st.rerun()
 
     st.divider()
 
-
-    completed_count = len(
-        st.session_state.completed_modules
-    )
-
+    completed_count = len(st.session_state.completed_modules)
     total_modules = len(modules)
-
-    progress = (
-        completed_count / total_modules
-        if total_modules
-        else 0
-    )
-
+    progress = completed_count / total_modules if total_modules else 0
 
     p1, p2, p3 = st.columns(3)
-
 
     p1.metric(
         "Available Modules",
         total_modules,
     )
 
-
     p2.metric(
         "Completed Modules",
         completed_count,
     )
-
 
     p3.metric(
         "Progress",
         f"{progress * 100:.0f}%",
     )
 
-
     st.progress(progress)
-
 
     tab_docs, tab_videos, tab_quizzes, tab_progress = st.tabs(
         [
@@ -1848,29 +1437,23 @@ elif current_page == "dashboard":
         ]
     )
 
-
-    # =====================================================
+    # -----------------------------------------------------
     # DOCUMENTS TAB
-    # =====================================================
-
+    # -----------------------------------------------------
     with tab_docs:
 
-        st.subheader(
-            "Training Modules"
-        )
+        st.subheader("Training Modules")
 
         st.caption(
             "Browse the learning modules assigned to this academy space. "
             "Training content can be added to each module."
         )
 
-
         for index, module in enumerate(modules):
 
             with st.container(border=True):
 
                 c1, c2 = st.columns([4, 1])
-
 
                 with c1:
 
@@ -1886,14 +1469,11 @@ elif current_page == "dashboard":
                         module["description"]
                     )
 
-
                 with c2:
 
                     if module["title"] in st.session_state.completed_modules:
 
-                        st.success(
-                            "Completed"
-                        )
+                        st.success("Completed")
 
                     else:
 
@@ -1909,47 +1489,36 @@ elif current_page == "dashboard":
 
                             st.rerun()
 
-
-    # =====================================================
+    # -----------------------------------------------------
     # VIDEOS TAB
-    # =====================================================
-
+    # -----------------------------------------------------
     with tab_videos:
 
-        st.subheader(
-            "Training Videos"
-        )
+        st.subheader("Training Videos")
 
         st.write(
             "Training videos can be organized here by topic, team, "
             "or engineering workflow."
         )
 
-
         video_topics = [
-
             (
                 "Company & Academy Overview",
                 "Introduction to Advansys ESC and the learning platform.",
             ),
-
             (
                 "Warehouse Automation",
                 "Fundamentals of material handling and automated warehouse systems.",
             ),
-
             (
                 "Hardware Design",
                 "Electrical design concepts, drawings, and hardware components.",
             ),
-
             (
                 "PLC & Controls",
                 "Control system fundamentals and PLC-related learning.",
             ),
-
         ]
-
 
         for title, description in video_topics:
 
@@ -1968,22 +1537,17 @@ elif current_page == "dashboard":
                     "Add a video link or file when the training material is ready."
                 )
 
-
-    # =====================================================
+    # -----------------------------------------------------
     # QUIZZES TAB
-    # =====================================================
-
+    # -----------------------------------------------------
     with tab_quizzes:
 
-        st.subheader(
-            "Knowledge Check"
-        )
+        st.subheader("Knowledge Check")
 
         st.write(
             "Answer this sample question to review a basic "
             "warehouse automation concept."
         )
-
 
         answer = st.radio(
             "What is one purpose of a conveyor system in a warehouse?",
@@ -1997,11 +1561,9 @@ elif current_page == "dashboard":
             key=f"quiz_answer_{team_code}",
         )
 
-
         if st.button(
             "Submit Answer",
             type="primary",
-            key=f"quiz_submit_{team_code}",
         ):
 
             if answer is None:
@@ -2009,7 +1571,6 @@ elif current_page == "dashboard":
                 st.warning(
                     "Please select an answer first."
                 )
-
 
             elif answer == "To transport materials between process areas":
 
@@ -2019,7 +1580,6 @@ elif current_page == "dashboard":
                     "Correct! Conveyors transport materials between areas."
                 )
 
-
             else:
 
                 st.session_state.quiz_score = "incorrect"
@@ -2028,13 +1588,11 @@ elif current_page == "dashboard":
                     "Not quite. Review the warehouse automation fundamentals."
                 )
 
-
         if st.session_state.quiz_score == "correct":
 
             st.caption(
                 "Latest quiz result: Correct"
             )
-
 
         elif st.session_state.quiz_score == "incorrect":
 
@@ -2042,26 +1600,19 @@ elif current_page == "dashboard":
                 "Latest quiz result: Try again"
             )
 
-
-    # =====================================================
+    # -----------------------------------------------------
     # PROGRESS TAB
-    # =====================================================
-
+    # -----------------------------------------------------
     with tab_progress:
 
-        st.subheader(
-            "My Learning Progress"
-        )
-
+        st.subheader("My Learning Progress")
 
         st.metric(
             "Modules Completed",
             f"{completed_count} / {total_modules}",
         )
 
-
         st.progress(progress)
-
 
         if completed_count == 0:
 
@@ -2070,20 +1621,15 @@ elif current_page == "dashboard":
                 "Visit the Documents tab and mark a module as complete."
             )
 
-
         else:
 
-            st.markdown(
-                "**Completed modules**"
-            )
-
+            st.markdown("**Completed modules**")
 
             for completed in st.session_state.completed_modules:
 
                 st.markdown(
                     f"- ✅ {completed}"
                 )
-
 
         st.caption(
             "This is a simple in-session progress demo. "
@@ -2094,15 +1640,12 @@ elif current_page == "dashboard":
 # =========================================================
 # FOOTER
 # =========================================================
-
-st.html(
+st.markdown(
     """
     <div class="footer">
-
         ADVANSYS ESC · CONTROLS TRAINING ACADEMY<br>
-
         Learn. Explore. Engineer.
-
     </div>
-    """
+    """,
+    unsafe_allow_html=True,
 )
